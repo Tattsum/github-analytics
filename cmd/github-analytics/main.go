@@ -42,28 +42,43 @@ func showHelp() {
 
 // getUsers はユーザーリストを取得します.
 func getUsers(orgName, usersStr, token *string) []string {
-	var users []string
-
-	switch {
-	case *orgName != "":
+	// 組織のメンバーを取得
+	var orgMembers []string
+	if *orgName != "" {
 		var err error
 
-		users, err = fetchOrganizationMembers(*token, *orgName)
+		orgMembers, err = fetchOrganizationMembers(*token, *orgName)
 		if err != nil {
-			log.Fatalf("Failed to fetch organization members: %v", err)
+			log.Fatalf("Failed to fetch organization members: %v\n"+
+				"Possible causes:\n"+
+				"  1. Organization '%s' does not exist or you don't have access\n"+
+				"  2. GITHUB_TOKEN does not have 'read:org' scope\n"+
+				"  3. You don't have permission to view organization members", *orgName, *orgName)
 		}
 
-		if len(users) == 0 {
-			log.Fatalf("No members found in organization: %s", *orgName)
+		if len(orgMembers) == 0 {
+			log.Fatalf("No members found in organization: %s\n"+
+				"Possible causes:\n"+
+				"  1. The organization has no members\n"+
+				"  2. You don't have permission to view organization members\n"+
+				"  3. GITHUB_TOKEN does not have 'read:org' scope", *orgName)
 		}
 
-		fmt.Printf("Found %d members in organization: %s\n", len(users), *orgName)
-	case *usersStr != "":
-		users = strings.Split(*usersStr, ",")
-		for i := range users {
-			users[i] = strings.TrimSpace(users[i])
-		}
-	default:
+		fmt.Printf("Found %d members in organization: %s\n", len(orgMembers), *orgName)
+	}
+
+	// 明示的に指定されたユーザーを取得
+	specifiedUsers := getUsersFromStrings(*usersStr)
+
+	// ユーザーをマージ
+	users, addedCount := mergeUsers(orgMembers, specifiedUsers)
+
+	if *orgName != "" && addedCount > 0 {
+		fmt.Printf("Added %d explicitly specified user(s)\n", addedCount)
+	}
+
+	// どちらも指定されていない場合はエラー
+	if *orgName == "" && *usersStr == "" {
 		log.Fatal("Either -users or -org flag must be specified. Use -help for usage.")
 	}
 
@@ -71,7 +86,59 @@ func getUsers(orgName, usersStr, token *string) []string {
 		log.Fatal("No users specified for analysis.")
 	}
 
+	fmt.Printf("Total %d user(s) to analyze\n", len(users))
+
 	return users
+}
+
+// getUsersFromStrings は文字列からユーザーリストを取得します.
+func getUsersFromStrings(usersStr string) []string {
+	if usersStr == "" {
+		return []string{}
+	}
+
+	users := strings.Split(usersStr, ",")
+	result := make([]string, 0, len(users))
+
+	for _, user := range users {
+		user = strings.TrimSpace(user)
+		if user != "" {
+			result = append(result, user)
+		}
+	}
+
+	return result
+}
+
+// mergeUsers は組織メンバーと指定ユーザーをマージします.
+func mergeUsers(orgMembers, specifiedUsers []string) ([]string, int) {
+	userSet := make(map[string]bool)
+	users := make([]string, 0)
+
+	// 組織メンバーを追加
+	for _, member := range orgMembers {
+		if !userSet[member] {
+			userSet[member] = true
+			users = append(users, member)
+		}
+	}
+
+	// 指定ユーザーを追加
+	addedCount := 0
+	for _, user := range specifiedUsers {
+		user = strings.TrimSpace(user)
+		if user == "" {
+			continue
+		}
+
+		if !userSet[user] {
+			userSet[user] = true
+			users = append(users, user)
+			addedCount++
+		}
+	}
+
+	return users, addedCount
 }
 
 // processUser はユーザーの統計を処理します.
@@ -217,6 +284,7 @@ func fetchOrganizationMembers(token, orgName string) ([]string, error) {
 
 	var query struct {
 		Organization struct {
+			Login           string
 			MembersWithRole struct {
 				Nodes []struct {
 					Login string
@@ -242,6 +310,11 @@ func fetchOrganizationMembers(token, orgName string) ([]string, error) {
 
 		if err := client.Query(ctx, &query, variables); err != nil {
 			return nil, fmt.Errorf("failed to fetch organization members: %w", err)
+		}
+
+		// 組織が存在しない場合、Loginが空になる可能性がある
+		if query.Organization.Login == "" {
+			return nil, fmt.Errorf("organization '%s' not found or you don't have access", orgName)
 		}
 
 		for _, node := range query.Organization.MembersWithRole.Nodes {
