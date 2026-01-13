@@ -1,0 +1,170 @@
+# golangci-lint v2設定ファイル
+# クリーンアーキテクチャとDDDを意識した厳格な設定
+
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor
+    - output
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*\\.gen\\.go$"
+
+output:
+  formats:
+    default: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  # エラーチェック
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    ignore: fmt:.*,io/ioutil:^Read.*
+
+  # 未使用の変数・インポート
+  unused:
+    check-exported: false
+
+  # 静的解析
+  staticcheck:
+    checks: ["all"]
+
+  # コメントチェック
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - wrapperFunc
+
+  # 循環的複雑度
+  cyclop:
+    max-complexity: 15
+    package-average: 0.0
+    skip-tests: true
+
+  # 関数の長さ
+  funlen:
+    lines: 100
+    statements: 50
+
+  # ネストの深さ
+  nestif:
+    min-complexity: 5
+
+  # インポート順序
+  goimports:
+    local-prefixes: github.com/Tattsum/github-analytics
+
+  # 命名規則
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+      - name: unexported-return
+        severity: warning
+        disabled: false
+      - name: error-return
+        severity: error
+        disabled: false
+      - name: error-naming
+        severity: error
+        disabled: false
+      - name: var-naming
+        severity: warning
+        disabled: false
+      - name: package-comments
+        severity: warning
+        disabled: false
+
+  # テスト
+  testpackage:
+    skip-regexp: (export|internal)_test\.go
+
+  # セキュリティ
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G104 # エラーを無視（意図的な場合がある）
+
+  # ドキュメント
+  godox:
+    keywords:
+      - NOTE
+      - OPTIMIZE
+      - HACK
+
+  # マジックナンバー（v2ではmndに変更）
+  mnd:
+    checks: argument,case,condition,operation,return,assign
+
+  # WSL v5設定
+  wsl_v5:
+    allow-first-in-block: true
+    allow-whole-block: false
+    branch-max-lines: 2
+
+linters:
+  # 有効なlinter（v2で利用可能なもののみ）
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - gocritic
+    - gosec
+    - errname
+    - errorlint
+    - err113
+    - gochecknoinits
+    - goconst
+    - gocognit
+    - gocyclo
+    - godot
+    - goheader
+    - gomodguard
+    - goprintffuncname
+    - noctx
+    - nolintlint
+    - rowserrcheck
+    - unconvert
+    - unparam
+    - whitespace
+    - wrapcheck
+    - wsl_v5
+    - mnd
+    - cyclop
+    - funlen
+    - nestif
+
+issues:
+  exclude-rules:
+    # テストファイルは一部のルールを緩和
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - funlen
+        - gocognit
+    # 生成されたファイルは除外
+    - path: ".*\\.pb\\.go$"
+    - path: ".*\\.gen\\.go$"
+  max-issues-per-linter: 0
+  max-same-issues: 0

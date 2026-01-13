@@ -1,0 +1,40 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+github-analytics
+
+# Test binary
+*.test
+
+# Output directory
+*.out
+
+# Coverage files
+coverage.out
+coverage.html
+
+# Go workspace file
+go.work
+
+# Node.js
+node_modules/
+# package-lock.json はバージョン管理に含める（依存関係の再現性のため）
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.envrc
+
+# Output files
+output/
+*.csv
+*.json
+*.txt
+
+# Skills directories (keep structure, ignore if needed)
+# .claude/skills/
+# .cursor/skills/

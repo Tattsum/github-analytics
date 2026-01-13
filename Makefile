@@ -1,0 +1,109 @@
+.PHONY: help build test test-coverage lint lint-fix lint-markdown lint-markdown-fix fmt clean install-tools run
+
+# 変数定義
+BINARY_NAME=github-analytics
+CMD_PATH=./cmd/github-analytics
+COVERAGE_FILE=coverage.out
+COVERAGE_HTML=coverage.html
+
+# デフォルトターゲット
+help: ## このヘルプメッセージを表示
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+build: ## アプリケーションをビルド
+	@echo "Building $(BINARY_NAME)..."
+	@go build -o $(BINARY_NAME) $(CMD_PATH)
+	@echo "Build complete: $(BINARY_NAME)"
+
+test: ## テストを実行
+	@echo "Running tests..."
+	@go test -v -race -coverprofile=$(COVERAGE_FILE) ./...
+
+test-coverage: test ## テストを実行し、カバレッジレポートを生成
+	@echo "Generating coverage report..."
+	@go tool cover -html=$(COVERAGE_FILE) -o $(COVERAGE_HTML)
+	@go tool cover -func=$(COVERAGE_FILE)
+	@echo "Coverage report generated: $(COVERAGE_HTML)"
+
+test-short: ## 短いテストを実行（統合テストをスキップ）
+	@echo "Running short tests..."
+	@go test -v -short ./...
+
+lint: ## golangci-lintを実行
+	@echo "Running golangci-lint..."
+	@golangci-lint run
+
+lint-fix: ## golangci-lintを実行し、自動修正可能な問題を修正
+	@echo "Running golangci-lint with auto-fix..."
+	@golangci-lint run --fix
+
+lint-markdown: ## markdownlintを実行
+	@echo "Running markdownlint..."
+	@if command -v markdownlint-cli2 >/dev/null 2>&1; then \
+		markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
+	elif [ -f node_modules/.bin/markdownlint-cli2 ]; then \
+		npx markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
+	else \
+		echo "markdownlint-cli2 not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
+
+lint-markdown-fix: ## markdownlintを実行し、自動修正可能な問題を修正
+	@echo "Running markdownlint with auto-fix..."
+	@if command -v markdownlint-cli2-fix >/dev/null 2>&1; then \
+		markdownlint-cli2-fix '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
+	elif [ -f node_modules/.bin/markdownlint-cli2-fix ]; then \
+		npx markdownlint-cli2-fix '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
+	else \
+		echo "markdownlint-cli2-fix not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
+
+fmt: ## コードをフォーマット
+	@echo "Formatting code..."
+	@go fmt ./...
+	@golangci-lint fmt
+	@golangci-lint run --fix || true
+	@echo "Formatting Markdown files..."
+	@$(MAKE) lint-markdown-fix || echo "markdownlint-fix failed or not available"
+
+clean: ## ビルド成果物とカバレッジファイルを削除
+	@echo "Cleaning..."
+	@rm -f $(BINARY_NAME)
+	@rm -f $(COVERAGE_FILE) $(COVERAGE_HTML)
+	@go clean -cache
+	@echo "Clean complete"
+
+install-tools: ## 開発ツールをインストール
+	@echo "Installing development tools..."
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	@if command -v npm >/dev/null 2>&1; then \
+		echo "Installing markdownlint-cli2..."; \
+		npm install --save-dev markdownlint-cli2@latest || echo "npm not found, skipping markdownlint installation"; \
+	else \
+		echo "npm not found. Please install Node.js to use markdownlint."; \
+	fi
+	@echo "Tools installed"
+
+run: build ## アプリケーションをビルドして実行
+	@echo "Running $(BINARY_NAME)..."
+	@./$(BINARY_NAME)
+
+deps: ## 依存関係を更新
+	@echo "Updating dependencies..."
+	@go get -u ./...
+	@go mod tidy
+
+deps-check: ## 依存関係の更新をチェック
+	@echo "Checking for dependency updates..."
+	@go list -u -m all
+
+vet: ## go vetを実行
+	@echo "Running go vet..."
+	@go vet ./...
+
+check: fmt lint lint-markdown vet test ## フォーマット、リント、markdownlint、vet、テストをすべて実行
+
+ci: install-tools check test-coverage ## CI用: ツールインストール、チェック、テスト、カバレッジ
+
+.DEFAULT_GOAL := help
