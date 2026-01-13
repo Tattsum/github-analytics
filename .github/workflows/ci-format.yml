@@ -1,0 +1,49 @@
+name: Format Check
+
+on:
+  workflow_call:
+
+jobs:
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: go.sum
+
+      - name: Check Go formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "Code is not formatted. Run 'go fmt ./...' to fix."
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --save-dev prettier@latest
+          fi
+
+      - name: Check JSON/YAML formatting
+        run: |
+          if [ -f node_modules/.bin/prettier ]; then
+            npm run lint:json-yaml
+          else
+            echo "prettier not found. Skipping JSON/YAML format check."
+            exit 1
+          fi

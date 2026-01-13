@@ -1,0 +1,34 @@
+name: Lint Markdown
+
+on:
+  workflow_call:
+
+jobs:
+  lint-markdown:
+    name: Lint Markdown
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --save-dev markdownlint-cli2@latest
+          fi
+
+      - name: Run markdownlint
+        run: |
+          if [ -f node_modules/.bin/markdownlint-cli2 ]; then
+            ./node_modules/.bin/markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
+          else
+            npx --yes markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
+          fi

@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: go.sum
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build
+        run: make build
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-analytics
+          path: github-analytics
+          retention-days: 7
