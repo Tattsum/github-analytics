@@ -54,14 +54,11 @@ jobs:
           go-version: '1.25'
           cache-dependency-path: go.sum
 
-      - name: Install golangci-lint
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
           args: --timeout=5m
-
-      - name: Run golangci-lint
-        run: make lint
 
   lint-markdown:
     name: Lint Markdown
@@ -86,7 +83,11 @@ jobs:
 
       - name: Run markdownlint
         run: |
-          npx --yes markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
+          if [ -f node_modules/.bin/markdownlint-cli2 ]; then
+            ./node_modules/.bin/markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
+          else
+            npx --yes markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
+          fi
 
   build:
     name: Build
@@ -139,11 +140,22 @@ jobs:
           go mod download
           npm ci
 
-      - name: Install golangci-lint
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
           args: --timeout=5m
 
+      - name: Run markdownlint
+        run: |
+          if [ -f node_modules/.bin/markdownlint-cli2 ]; then
+            ./node_modules/.bin/markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
+          else
+            npx --yes markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
+          fi
+
       - name: Run full check
-        run: make check
+        run: |
+          go fmt ./...
+          go vet ./...
+          make test
