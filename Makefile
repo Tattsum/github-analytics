@@ -31,7 +31,14 @@ test-short: ## 短いテストを実行（統合テストをスキップ）
 
 lint: ## golangci-lintを実行
 	@echo "Running golangci-lint..."
-	@golangci-lint run
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run; \
+	elif [ -f $(go env GOPATH)/bin/golangci-lint ]; then \
+		$(go env GOPATH)/bin/golangci-lint run; \
+	else \
+		echo "golangci-lint not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
 
 lint-fix: ## golangci-lintを実行し、自動修正可能な問題を修正
 	@echo "Running golangci-lint with auto-fix..."
