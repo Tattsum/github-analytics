@@ -93,12 +93,42 @@ jobs:
             npx --yes markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
           fi
 
-      - name: Run JSON and YAML linter
+  lint-json-yaml:
+    name: Lint JSON and YAML
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --save-dev prettier@latest
+          fi
+
+      - name: Run JSON linter
         run: |
           if [ -f node_modules/.bin/prettier ]; then
-            npm run lint:json-yaml
+            npm run lint:json
           else
-            echo "prettier not found. Skipping JSON/YAML lint."
+            echo "prettier not found. Skipping JSON lint."
+            exit 1
+          fi
+
+      - name: Run YAML linter
+        run: |
+          if [ -f node_modules/.bin/prettier ]; then
+            npm run lint:yaml
+          else
+            echo "prettier not found. Skipping YAML lint."
             exit 1
           fi
 
@@ -131,7 +161,7 @@ jobs:
   check:
     name: Full Check
     runs-on: ubuntu-latest
-    needs: [test, lint, lint-markdown, build]
+    needs: [test, lint, lint-markdown, lint-json-yaml, build]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
