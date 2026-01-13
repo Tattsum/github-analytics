@@ -32,7 +32,8 @@ yarn.lock
 # Output files
 output/
 *.csv
-*.json
+# *.json は package-lock.json を除外するため、個別に指定
+# package-lock.json はバージョン管理に含める（依存関係の再現性のため）
 *.txt
 
 # Skills directories (tracked, but ignore if needed in future)
