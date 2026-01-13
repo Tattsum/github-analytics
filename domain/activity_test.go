@@ -5,6 +5,31 @@ import (
 	"time"
 )
 
+// assertActivity はActivityのアサーションを行います.
+func assertActivity(t *testing.T, got, want *Activity) {
+	t.Helper()
+
+	if got.Type != want.Type {
+		t.Errorf("NewActivity().Type = %v, want %v", got.Type, want.Type)
+	}
+
+	if got.Repository != want.Repository {
+		t.Errorf("NewActivity().Repository = %v, want %v", got.Repository, want.Repository)
+	}
+
+	if !got.Date.Equal(want.Date) {
+		t.Errorf("NewActivity().Date = %v, want %v", got.Date, want.Date)
+	}
+
+	if got.Additions != want.Additions {
+		t.Errorf("NewActivity().Additions = %v, want %v", got.Additions, want.Additions)
+	}
+
+	if got.Deletions != want.Deletions {
+		t.Errorf("NewActivity().Deletions = %v, want %v", got.Deletions, want.Deletions)
+	}
+}
+
 func TestNewActivity(t *testing.T) {
 	t.Parallel()
 
@@ -56,25 +81,7 @@ func TestNewActivity(t *testing.T) {
 			t.Parallel()
 
 			got := NewActivity(tt.activityType, tt.repo, tt.date, tt.additions, tt.deletions)
-			if got.Type != tt.want.Type {
-				t.Errorf("NewActivity().Type = %v, want %v", got.Type, tt.want.Type)
-			}
-
-			if got.Repository != tt.want.Repository {
-				t.Errorf("NewActivity().Repository = %v, want %v", got.Repository, tt.want.Repository)
-			}
-
-			if !got.Date.Equal(tt.want.Date) {
-				t.Errorf("NewActivity().Date = %v, want %v", got.Date, tt.want.Date)
-			}
-
-			if got.Additions != tt.want.Additions {
-				t.Errorf("NewActivity().Additions = %v, want %v", got.Additions, tt.want.Additions)
-			}
-
-			if got.Deletions != tt.want.Deletions {
-				t.Errorf("NewActivity().Deletions = %v, want %v", got.Deletions, tt.want.Deletions)
-			}
+			assertActivity(t, got, tt.want)
 		})
 	}
 }

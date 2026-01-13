@@ -106,7 +106,10 @@ func (r *GitHubRepository) FetchCommits(ctx context.Context, username string, in
 	}
 
 	results := make(chan repoCommitResult, len(repos))
-	semaphore := make(chan struct{}, 5) // 最大5並列
+
+	const maxConcurrentRepos = 5
+
+	semaphore := make(chan struct{}, maxConcurrentRepos) // 最大5並列
 
 	for _, repo := range repos {
 		go func(repoName string) {
@@ -185,9 +188,9 @@ func (r *GitHubRepository) fetchUserRepositories(ctx context.Context, username s
 }
 
 // fetchRepositoryCommits は特定リポジトリのコミットを取得します.
-func (r *GitHubRepository) fetchRepositoryCommits(ctx context.Context, username, repoName string) ([]*domain.Activity, error) {
+func (r *GitHubRepository) fetchRepositoryCommits(_ context.Context, _, _ string) ([]*domain.Activity, error) {
 	// この実装は簡略化されています
 	// 実際には、リポジトリのowner情報も必要です
 	// より詳細な実装が必要な場合は、リポジトリの完全な情報（owner/repo）を取得する必要があります
-	return nil, fmt.Errorf("not implemented: need repository owner information")
+	return nil, domain.ErrNotImplemented
 }

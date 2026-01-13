@@ -1,3 +1,5 @@
+// Package application はユースケース層を提供します.
+// このパッケージはドメイン層の協調を行い、ビジネスロジックを実装します.
 package application
 
 import (
@@ -85,52 +87,42 @@ func (s *StatisticsService) calculateBasicStatistics(
 	stats.CalculatePRToReviewRatio()
 }
 
-// calculateYearlyStatistics は年別統計を計算します.
-func (s *StatisticsService) calculateYearlyStatistics(
-	stats *domain.UserStatistics,
-	allActivities []*domain.Activity,
+// aggregateYearlyData は年別データを集計します.
+func (s *StatisticsService) aggregateYearlyData(
 	data *infrastructure.UserActivityData,
-) {
-	// 年別にコミットを集計
+	allActivities []*domain.Activity,
+) (map[int]int, map[int]int, map[int]int, map[int]int, map[int]int, map[int]int, map[int]int) {
 	yearlyCommits := make(map[int]int)
+	yearlyPRCreated := make(map[int]int)
+	yearlyPRMerged := make(map[int]int)
+	yearlyIssues := make(map[int]int)
+	yearlyReviews := make(map[int]int)
+	yearlyAdditions := make(map[int]int)
+	yearlyDeletions := make(map[int]int)
 
 	for _, commit := range data.Commits {
 		year := commit.Date.Year()
 		yearlyCommits[year]++
 	}
 
-	// 年別にPRを集計
-	yearlyPRCreated := make(map[int]int)
-	yearlyPRMerged := make(map[int]int)
-
 	for _, pr := range data.PRs {
 		year := pr.Date.Year()
-
 		yearlyPRCreated[year]++
+
 		if pr.IsMerged {
 			yearlyPRMerged[year]++
 		}
 	}
-
-	// 年別にIssueを集計
-	yearlyIssues := make(map[int]int)
 
 	for _, issue := range data.Issues {
 		year := issue.Date.Year()
 		yearlyIssues[year]++
 	}
 
-	// 年別にReviewを集計
-	yearlyReviews := make(map[int]int)
-
 	for _, review := range data.Reviews {
 		year := review.Date.Year()
 		yearlyReviews[year]++
 	}
-
-	// 年別に変更行数を集計
-	yearlyAdditions := make(map[int]int)
-	yearlyDeletions := make(map[int]int)
 
 	for _, activity := range allActivities {
 		year := activity.Date.Year()
@@ -138,7 +130,13 @@ func (s *StatisticsService) calculateYearlyStatistics(
 		yearlyDeletions[year] += activity.Deletions
 	}
 
-	// 全ての年を取得
+	return yearlyCommits, yearlyPRCreated, yearlyPRMerged, yearlyIssues, yearlyReviews, yearlyAdditions, yearlyDeletions
+}
+
+// collectAllYears は全ての年を収集します.
+func (s *StatisticsService) collectAllYears(
+	yearlyCommits, yearlyPRCreated, yearlyIssues, yearlyReviews map[int]int,
+) map[int]bool {
 	years := make(map[int]bool)
 	for year := range yearlyCommits {
 		years[year] = true
@@ -156,7 +154,15 @@ func (s *StatisticsService) calculateYearlyStatistics(
 		years[year] = true
 	}
 
-	// 年別統計を作成
+	return years
+}
+
+// buildYearlyStats は年別統計を作成します.
+func (s *StatisticsService) buildYearlyStats(
+	stats *domain.UserStatistics,
+	years map[int]bool,
+	yearlyCommits, yearlyPRCreated, yearlyPRMerged, yearlyIssues, yearlyReviews, yearlyAdditions, yearlyDeletions map[int]int,
+) {
 	for year := range years {
 		yearlyStat := domain.NewYearlyStatistics(year)
 		yearlyStat.CommitCount = yearlyCommits[year]
@@ -168,8 +174,10 @@ func (s *StatisticsService) calculateYearlyStatistics(
 		yearlyStat.TotalDeletions = yearlyDeletions[year]
 		stats.YearlyStats[year] = yearlyStat
 	}
+}
 
-	// ピーク年を計算
+// calculatePeakYear はピーク年を計算します.
+func (s *StatisticsService) calculatePeakYear(stats *domain.UserStatistics) {
 	maxCommits := 0
 	for year, yearlyStat := range stats.YearlyStats {
 		if yearlyStat.CommitCount > maxCommits {
@@ -180,14 +188,26 @@ func (s *StatisticsService) calculateYearlyStatistics(
 	}
 }
 
-// calculateRepositoryStatistics はリポジトリ統計を計算します.
-func (s *StatisticsService) calculateRepositoryStatistics(
+// calculateYearlyStatistics は年別統計を計算します.
+func (s *StatisticsService) calculateYearlyStatistics(
 	stats *domain.UserStatistics,
 	allActivities []*domain.Activity,
+	data *infrastructure.UserActivityData,
 ) {
+	yearlyCommits, yearlyPRCreated, yearlyPRMerged, yearlyIssues, yearlyReviews, yearlyAdditions, yearlyDeletions :=
+		s.aggregateYearlyData(data, allActivities)
+
+	years := s.collectAllYears(yearlyCommits, yearlyPRCreated, yearlyIssues, yearlyReviews)
+
+	s.buildYearlyStats(stats, years, yearlyCommits, yearlyPRCreated, yearlyPRMerged, yearlyIssues, yearlyReviews, yearlyAdditions, yearlyDeletions)
+
+	s.calculatePeakYear(stats)
+}
+
+// aggregateRepositoryActivities はリポジトリごとに活動を集計します.
+func (s *StatisticsService) aggregateRepositoryActivities(allActivities []*domain.Activity) map[string]*domain.RepositoryActivity {
 	repoMap := make(map[string]*domain.RepositoryActivity)
 
-	// リポジトリごとに活動を集計
 	for _, activity := range allActivities {
 		repo, exists := repoMap[activity.Repository]
 		if !exists {
@@ -220,7 +240,11 @@ func (s *StatisticsService) calculateRepositoryStatistics(
 		}
 	}
 
-	// TOP3リポジトリを取得（コミット数順）
+	return repoMap
+}
+
+// selectTopRepositories はTOP3リポジトリを選択します.
+func (s *StatisticsService) selectTopRepositories(repoMap map[string]*domain.RepositoryActivity) []*domain.RepositoryActivity {
 	repos := make([]*domain.RepositoryActivity, 0, len(repoMap))
 	for _, repo := range repoMap {
 		repos = append(repos, repo)
@@ -230,27 +254,45 @@ func (s *StatisticsService) calculateRepositoryStatistics(
 		return repos[i].CommitCount > repos[j].CommitCount
 	})
 
-	if len(repos) > 3 {
-		stats.TopRepositories = repos[:3]
-	} else {
-		stats.TopRepositories = repos
+	const topRepoLimit = 3
+	if len(repos) > topRepoLimit {
+		return repos[:topRepoLimit]
 	}
 
-	// 長期間関与しているリポジトリを取得（1年以上）
+	return repos
+}
+
+// findLongTermRepositories は長期間関与しているリポジトリを取得します.
+func (s *StatisticsService) findLongTermRepositories(repos []*domain.RepositoryActivity) []*domain.RepositoryActivity {
+	const oneYear = 365 * 24 * time.Hour
+
+	longTermRepos := make([]*domain.RepositoryActivity, 0)
+
 	for _, repo := range repos {
 		duration := repo.LastActivity.Sub(repo.FirstActivity)
-		if duration >= 365*24*time.Hour {
-			stats.LongTermRepositories = append(stats.LongTermRepositories, repo)
+		if duration >= oneYear {
+			longTermRepos = append(longTermRepos, repo)
 		}
 	}
 
-	// 長期間関与リポジトリを期間順にソート
-	sort.Slice(stats.LongTermRepositories, func(i, j int) bool {
-		durationI := stats.LongTermRepositories[i].LastActivity.Sub(stats.LongTermRepositories[i].FirstActivity)
-		durationJ := stats.LongTermRepositories[j].LastActivity.Sub(stats.LongTermRepositories[j].FirstActivity)
+	sort.Slice(longTermRepos, func(i, j int) bool {
+		durationI := longTermRepos[i].LastActivity.Sub(longTermRepos[i].FirstActivity)
+		durationJ := longTermRepos[j].LastActivity.Sub(longTermRepos[j].FirstActivity)
 
 		return durationI > durationJ
 	})
+
+	return longTermRepos
+}
+
+// calculateRepositoryStatistics はリポジトリ統計を計算します.
+func (s *StatisticsService) calculateRepositoryStatistics(
+	stats *domain.UserStatistics,
+	allActivities []*domain.Activity,
+) {
+	repoMap := s.aggregateRepositoryActivities(allActivities)
+	stats.TopRepositories = s.selectTopRepositories(repoMap)
+	stats.LongTermRepositories = s.findLongTermRepositories(stats.TopRepositories)
 }
 
 // analyzeContinuityAndCareer は継続性・キャリア変遷を分析します.
@@ -283,27 +325,48 @@ func (s *StatisticsService) analyzeContinuityAndCareer(stats *domain.UserStatist
 	}
 }
 
-// generateRoleDescription はロール変化の説明を生成します.
-func (s *StatisticsService) generateRoleDescription(prCreated, reviewCount int, ratio float64) string {
+// generateRoleDescriptionForNoActivity は活動がない場合の説明を生成します.
+func (s *StatisticsService) generateRoleDescriptionForNoActivity(prCreated, reviewCount int) (string, bool) {
 	if prCreated == 0 && reviewCount == 0 {
-		return "活動なし"
+		return "活動なし", true
 	}
 
 	if prCreated == 0 && reviewCount > 0 {
-		return "レビュー中心の活動"
+		return "レビュー中心の活動", true
 	}
 
 	if prCreated > 0 && reviewCount == 0 {
-		return "開発中心の活動"
+		return "開発中心の活動", true
 	}
 
-	if ratio < 0.5 {
+	return "", false
+}
+
+// generateRoleDescriptionByRatio は比率に基づいてロール説明を生成します.
+func (s *StatisticsService) generateRoleDescriptionByRatio(ratio float64) string {
+	const (
+		ratioThresholdLow  = 0.5
+		ratioThresholdMid  = 1.0
+		ratioThresholdHigh = 2.0
+	)
+
+	switch {
+	case ratio < ratioThresholdLow:
 		return "開発中心、レビューも実施"
-	} else if ratio < 1.0 {
+	case ratio < ratioThresholdMid:
 		return "開発とレビューのバランス"
-	} else if ratio < 2.0 {
+	case ratio < ratioThresholdHigh:
 		return "レビュー重視の活動"
-	} else {
+	default:
 		return "レビュー中心、チーム品質向上に貢献"
 	}
+}
+
+// generateRoleDescription はロール変化の説明を生成します.
+func (s *StatisticsService) generateRoleDescription(prCreated, reviewCount int, ratio float64) string {
+	if desc, ok := s.generateRoleDescriptionForNoActivity(prCreated, reviewCount); ok {
+		return desc
+	}
+
+	return s.generateRoleDescriptionByRatio(ratio)
 }

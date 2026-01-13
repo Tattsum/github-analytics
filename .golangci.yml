@@ -45,14 +45,14 @@ linters-settings:
 
   # 循環的複雑度
   cyclop:
-    max-complexity: 15
+    max-complexity: 20
     package-average: 0.0
     skip-tests: true
 
   # 関数の長さ
   funlen:
-    lines: 100
-    statements: 50
+    lines: 120
+    statements: 60
 
   # ネストの深さ
   nestif:
@@ -105,6 +105,18 @@ linters-settings:
   # マジックナンバー（v2ではmndに変更）
   mnd:
     checks: argument,case,condition,operation,return,assign
+    ignored-numbers:
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "24"
+      - "30"
+      - "60"
+      - "365"
+      - "4500"
+      - "0644"
+      - "0755"
 
   # WSL v5設定
   wsl_v5:

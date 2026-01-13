@@ -1,3 +1,4 @@
+// Package main はGitHub Analyticsアプリケーションのエントリーポイントです.
 package main
 
 import (
@@ -26,45 +27,28 @@ import (
 // 3. API制限を考慮して実装されているため、大量のデータがある場合は時間がかかる場合があります
 // 4. privateリポジトリも対象にする場合は、トークンに適切な権限が必要です
 
-func main() {
-	// コマンドライン引数の定義
-	var (
-		usersStr       = flag.String("users", "", "分析対象のGitHubユーザー名（カンマ区切り、例: user1,user2）")
-		orgName        = flag.String("org", "", "分析対象のGitHub組織名（指定した場合、組織のメンバーを分析）")
-		outputDir      = flag.String("output", "output", "出力ディレクトリ")
-		includePrivate = flag.Bool("private", false, "privateリポジトリも対象にする")
-		help           = flag.Bool("help", false, "ヘルプを表示")
-	)
+// showHelp はヘルプを表示します.
+func showHelp() {
+	flag.Usage()
+	fmt.Println("\n使用例:")
+	fmt.Println("  # 特定のユーザーを分析")
+	fmt.Println("  ./github-analytics -users user1,user2")
+	fmt.Println("  # 組織のメンバーを分析")
+	fmt.Println("  ./github-analytics -org myorg")
+	fmt.Println("  # privateリポジトリも含める")
+	fmt.Println("  ./github-analytics -users user1 -private")
+	os.Exit(0)
+}
 
-	flag.Parse()
-
-	// ヘルプ表示
-	if *help {
-		flag.Usage()
-		fmt.Println("\n使用例:")
-		fmt.Println("  # 特定のユーザーを分析")
-		fmt.Println("  ./github-analytics -users user1,user2")
-		fmt.Println("  # 組織のメンバーを分析")
-		fmt.Println("  ./github-analytics -org myorg")
-		fmt.Println("  # privateリポジトリも含める")
-		fmt.Println("  ./github-analytics -users user1 -private")
-		os.Exit(0)
-	}
-
-	// 環境変数からトークンを取得
-	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		log.Fatal("GITHUB_TOKEN environment variable is not set. Please set your GitHub Personal Access Token.")
-	}
-
-	// ユーザーリストを取得
+// getUsers はユーザーリストを取得します.
+func getUsers(orgName, usersStr, token *string) []string {
 	var users []string
 
-	if *orgName != "" {
-		// 組織のメンバーを取得
+	switch {
+	case *orgName != "":
 		var err error
 
-		users, err = fetchOrganizationMembers(token, *orgName)
+		users, err = fetchOrganizationMembers(*token, *orgName)
 		if err != nil {
 			log.Fatalf("Failed to fetch organization members: %v", err)
 		}
@@ -74,13 +58,12 @@ func main() {
 		}
 
 		fmt.Printf("Found %d members in organization: %s\n", len(users), *orgName)
-	} else if *usersStr != "" {
-		// コマンドライン引数からユーザー名を取得
+	case *usersStr != "":
 		users = strings.Split(*usersStr, ",")
 		for i := range users {
 			users[i] = strings.TrimSpace(users[i])
 		}
-	} else {
+	default:
 		log.Fatal("Either -users or -org flag must be specified. Use -help for usage.")
 	}
 
@@ -88,54 +71,38 @@ func main() {
 		log.Fatal("No users specified for analysis.")
 	}
 
-	// 出力ディレクトリを作成
-	if err := os.MkdirAll(*outputDir, 0755); err != nil {
-		log.Fatalf("Failed to create output directory: %v", err)
+	return users
+}
+
+// processUser はユーザーの統計を処理します.
+func processUser(
+	ctx context.Context,
+	user string,
+	includePrivate bool,
+	fetcher *infrastructure.GitHubDataFetcher,
+	statsService *application.StatisticsService,
+) (*domain.UserStatistics, error) {
+	fmt.Printf("Processing user: %s\n", user)
+
+	data, err := fetcher.FetchAllUserActivity(ctx, user, includePrivate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user activity: %w", err)
 	}
 
-	// コンテキストを作成（タイムアウト: 30分）
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
-	defer cancel()
-
-	// GitHubクライアントを作成
-	client := infrastructure.NewGitHubClient(token)
-	repo := infrastructure.NewGitHubRepository(client)
-	fetcher := infrastructure.NewGitHubDataFetcher(repo)
-	statsService := application.NewStatisticsService()
-
-	// 各ユーザーの統計を並列で取得
-	type userResult struct {
-		username string
-		stats    interface{}
-		err      error
+	stats, err := statsService.CalculateStatistics(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate statistics: %w", err)
 	}
 
-	results := make(chan userResult, len(users))
+	return stats, nil
+}
 
-	for _, username := range users {
-		go func(user string) {
-			fmt.Printf("Processing user: %s\n", user)
-
-			// データ取得
-			data, err := fetcher.FetchAllUserActivity(ctx, user, *includePrivate)
-			if err != nil {
-				results <- userResult{username: user, err: err}
-				return
-			}
-
-			// 統計計算
-			stats, err := statsService.CalculateStatistics(data)
-			if err != nil {
-				results <- userResult{username: user, err: err}
-				return
-			}
-
-			results <- userResult{username: user, stats: stats}
-		}(username)
-	}
-
-	// 結果を収集して出力
-	formatter := presentation.NewOutputFormatter(*outputDir)
+// collectResults は結果を収集して出力します.
+func collectResults(
+	results chan userResult,
+	users []string,
+	formatter *presentation.OutputFormatter,
+) map[string]interface{} {
 	allStats := make(map[string]interface{})
 
 	for i := 0; i < len(users); i++ {
@@ -153,7 +120,6 @@ func main() {
 
 		allStats[result.username] = stats
 
-		// 出力生成
 		if err := formatter.FormatAll(stats); err != nil {
 			log.Printf("Error formatting output for user %s: %v", result.username, err)
 			continue
@@ -162,18 +128,89 @@ func main() {
 		fmt.Printf("Completed processing user: %s\n", result.username)
 	}
 
-	// 統合レポートを生成（オプション）
-	if err := generateCombinedReport(*outputDir, allStats); err != nil {
-		log.Printf("Error generating combined report: %v", err)
+	return allStats
+}
+
+type userResult struct {
+	username string
+	stats    interface{}
+	err      error
+}
+
+func main() {
+	var (
+		usersStr       = flag.String("users", "", "分析対象のGitHubユーザー名（カンマ区切り、例: user1,user2）")
+		orgName        = flag.String("org", "", "分析対象のGitHub組織名（指定した場合、組織のメンバーを分析）")
+		outputDir      = flag.String("output", "output", "出力ディレクトリ")
+		includePrivate = flag.Bool("private", false, "privateリポジトリも対象にする")
+		help           = flag.Bool("help", false, "ヘルプを表示")
+	)
+
+	flag.Parse()
+
+	if *help {
+		showHelp()
 	}
+
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		log.Fatal("GITHUB_TOKEN environment variable is not set. Please set your GitHub Personal Access Token.")
+	}
+
+	users := getUsers(orgName, usersStr, &token)
+
+	setupAndProcessUsers(users, *outputDir, *includePrivate, token)
 
 	fmt.Println("\n=== 処理完了 ===")
 	fmt.Printf("結果は %s/ ディレクトリに出力されました。\n", *outputDir)
 }
 
+// setupAndProcessUsers はユーザー処理のセットアップと実行を行います.
+func setupAndProcessUsers(users []string, outputDir string, includePrivate bool, token string) {
+	const (
+		dirPerm        = 0750
+		timeoutMinutes = 30
+	)
+
+	if err := os.MkdirAll(outputDir, dirPerm); err != nil {
+		log.Fatalf("Failed to create output directory: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutMinutes*time.Minute)
+	defer cancel()
+
+	client := infrastructure.NewGitHubClient(token)
+	repo := infrastructure.NewGitHubRepository(client)
+	fetcher := infrastructure.NewGitHubDataFetcher(repo)
+	statsService := application.NewStatisticsService()
+
+	results := make(chan userResult, len(users))
+
+	for _, username := range users {
+		go func(user string) {
+			stats, err := processUser(ctx, user, includePrivate, fetcher, statsService)
+			if err != nil {
+				results <- userResult{username: user, err: err}
+				return
+			}
+
+			results <- userResult{username: user, stats: stats}
+		}(username)
+	}
+
+	formatter := presentation.NewOutputFormatter(outputDir)
+	allStats := collectResults(results, users, formatter)
+
+	if err := generateCombinedReport(outputDir, allStats); err != nil {
+		log.Printf("Error generating combined report: %v", err)
+	}
+}
+
 // fetchOrganizationMembers は組織のメンバー一覧を取得します.
 func fetchOrganizationMembers(token, orgName string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	const orgFetchTimeoutMinutes = 5
+
+	ctx, cancel := context.WithTimeout(context.Background(), orgFetchTimeoutMinutes*time.Minute)
 	defer cancel()
 
 	client := infrastructure.NewGitHubClient(token)
@@ -223,7 +260,7 @@ func fetchOrganizationMembers(token, orgName string) ([]string, error) {
 }
 
 // generateCombinedReport は複数ユーザーの統合レポートを生成します.
-func generateCombinedReport(outputDir string, allStats map[string]interface{}) error {
+func generateCombinedReport(_ string, _ map[string]interface{}) error {
 	// 簡易的な統合レポート
 	// より詳細な実装が必要な場合は拡張可能
 	return nil

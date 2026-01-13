@@ -1,3 +1,5 @@
+// Package presentation はプレゼンテーション層を提供します.
+// このパッケージは出力フォーマット、UI、CLIなどの実装を提供します.
 package presentation
 
 import (
@@ -5,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -24,9 +27,15 @@ func NewOutputFormatter(outputDir string) *OutputFormatter {
 	}
 }
 
+const (
+	dirPerm     = 0750
+	filePerm    = 0600
+	hoursPerDay = 24
+)
+
 // FormatAll は全ての出力形式を生成します.
 func (f *OutputFormatter) FormatAll(stats *domain.UserStatistics) error {
-	if err := os.MkdirAll(f.outputDir, 0755); err != nil {
+	if err := os.MkdirAll(f.outputDir, dirPerm); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -53,50 +62,35 @@ func (f *OutputFormatter) FormatAll(stats *domain.UserStatistics) error {
 	return nil
 }
 
-// OutputJSON はJSON形式で出力します.
-func (f *OutputFormatter) OutputJSON(stats *domain.UserStatistics) error {
-	filename := fmt.Sprintf("%s/%s_statistics.json", f.outputDir, stats.User.Login)
-
-	// JSON用の構造体を作成
-	jsonData := struct {
-		User                 string                 `json:"user"`
-		TotalCommits         int                    `json:"total_commits"`
-		TotalPRCreated       int                    `json:"total_pr_created"`
-		TotalPRMerged        int                    `json:"total_pr_merged"`
-		TotalIssues          int                    `json:"total_issues"`
-		TotalReviews         int                    `json:"total_reviews"`
-		TotalAdditions       int                    `json:"total_additions"`
-		TotalDeletions       int                    `json:"total_deletions"`
-		FirstActivityYear    int                    `json:"first_activity_year"`
-		PeakActivityYear     int                    `json:"peak_activity_year"`
-		PeakActivityCommits  int                    `json:"peak_activity_commits"`
-		PRToReviewRatio      float64                `json:"pr_to_review_ratio"`
-		YearlyStats          map[string]interface{} `json:"yearly_stats"`
-		TopRepositories      []interface{}          `json:"top_repositories"`
-		LongTermRepositories []interface{}          `json:"long_term_repositories"`
-		RoleTransition       []interface{}          `json:"role_transition"`
-	}{
-		User:                 stats.User.Login,
-		TotalCommits:         stats.TotalCommits,
-		TotalPRCreated:       stats.TotalPRCreated,
-		TotalPRMerged:        stats.TotalPRMerged,
-		TotalIssues:          stats.TotalIssues,
-		TotalReviews:         stats.TotalReviews,
-		TotalAdditions:       stats.TotalAdditions,
-		TotalDeletions:       stats.TotalDeletions,
-		FirstActivityYear:    stats.FirstActivityYear,
-		PeakActivityYear:     stats.PeakActivityYear,
-		PeakActivityCommits:  stats.PeakActivityCommits,
-		PRToReviewRatio:      stats.PRToReviewRatio,
-		YearlyStats:          make(map[string]interface{}),
-		TopRepositories:      make([]interface{}, 0),
-		LongTermRepositories: make([]interface{}, 0),
-		RoleTransition:       make([]interface{}, 0),
+// buildJSONData はJSON用のデータ構造を構築します.
+func (f *OutputFormatter) buildJSONData(stats *domain.UserStatistics) map[string]interface{} {
+	jsonData := map[string]interface{}{
+		"user":                   stats.User.Login,
+		"total_commits":          stats.TotalCommits,
+		"total_pr_created":       stats.TotalPRCreated,
+		"total_pr_merged":        stats.TotalPRMerged,
+		"total_issues":           stats.TotalIssues,
+		"total_reviews":          stats.TotalReviews,
+		"total_additions":        stats.TotalAdditions,
+		"total_deletions":        stats.TotalDeletions,
+		"first_activity_year":    stats.FirstActivityYear,
+		"peak_activity_year":     stats.PeakActivityYear,
+		"peak_activity_commits":  stats.PeakActivityCommits,
+		"pr_to_review_ratio":     stats.PRToReviewRatio,
+		"yearly_stats":           f.buildYearlyStatsJSON(stats),
+		"top_repositories":       f.buildTopRepositoriesJSON(stats),
+		"long_term_repositories": f.buildLongTermRepositoriesJSON(stats),
+		"role_transition":        f.buildRoleTransitionJSON(stats),
 	}
 
-	// 年別統計を変換
+	return jsonData
+}
+
+// buildYearlyStatsJSON は年別統計のJSONデータを構築します.
+func (f *OutputFormatter) buildYearlyStatsJSON(stats *domain.UserStatistics) map[string]interface{} {
+	yearlyStats := make(map[string]interface{})
 	for year, yearlyStat := range stats.YearlyStats {
-		jsonData.YearlyStats[fmt.Sprintf("%d", year)] = map[string]interface{}{
+		yearlyStats[fmt.Sprintf("%d", year)] = map[string]interface{}{
 			"year":         yearlyStat.Year,
 			"commit_count": yearlyStat.CommitCount,
 			"pr_created":   yearlyStat.PRCreated,
@@ -108,9 +102,14 @@ func (f *OutputFormatter) OutputJSON(stats *domain.UserStatistics) error {
 		}
 	}
 
-	// TOP3リポジトリを変換
+	return yearlyStats
+}
+
+// buildTopRepositoriesJSON はTOP3リポジトリのJSONデータを構築します.
+func (f *OutputFormatter) buildTopRepositoriesJSON(stats *domain.UserStatistics) []interface{} {
+	repos := make([]interface{}, 0, len(stats.TopRepositories))
 	for _, repo := range stats.TopRepositories {
-		jsonData.TopRepositories = append(jsonData.TopRepositories, map[string]interface{}{
+		repos = append(repos, map[string]interface{}{
 			"repository":     repo.Repository,
 			"commit_count":   repo.CommitCount,
 			"pr_count":       repo.PRCount,
@@ -123,20 +122,30 @@ func (f *OutputFormatter) OutputJSON(stats *domain.UserStatistics) error {
 		})
 	}
 
-	// 長期間関与リポジトリを変換
+	return repos
+}
+
+// buildLongTermRepositoriesJSON は長期間関与リポジトリのJSONデータを構築します.
+func (f *OutputFormatter) buildLongTermRepositoriesJSON(stats *domain.UserStatistics) []interface{} {
+	repos := make([]interface{}, 0, len(stats.LongTermRepositories))
 	for _, repo := range stats.LongTermRepositories {
-		jsonData.LongTermRepositories = append(jsonData.LongTermRepositories, map[string]interface{}{
+		repos = append(repos, map[string]interface{}{
 			"repository":     repo.Repository,
 			"commit_count":   repo.CommitCount,
 			"first_activity": repo.FirstActivity.Format(time.RFC3339),
 			"last_activity":  repo.LastActivity.Format(time.RFC3339),
-			"duration_days":  int(repo.LastActivity.Sub(repo.FirstActivity).Hours() / 24),
+			"duration_days":  int(repo.LastActivity.Sub(repo.FirstActivity).Hours() / hoursPerDay),
 		})
 	}
 
-	// ロール変化を変換
+	return repos
+}
+
+// buildRoleTransitionJSON はロール変化のJSONデータを構築します.
+func (f *OutputFormatter) buildRoleTransitionJSON(stats *domain.UserStatistics) []interface{} {
+	transitions := make([]interface{}, 0, len(stats.RoleTransition))
 	for _, transition := range stats.RoleTransition {
-		jsonData.RoleTransition = append(jsonData.RoleTransition, map[string]interface{}{
+		transitions = append(transitions, map[string]interface{}{
 			"year":         transition.Year,
 			"pr_created":   transition.PRCreated,
 			"review_count": transition.ReviewCount,
@@ -145,41 +154,34 @@ func (f *OutputFormatter) OutputJSON(stats *domain.UserStatistics) error {
 		})
 	}
 
-	// JSONファイルに書き込み
+	return transitions
+}
+
+// OutputJSON はJSON形式で出力します.
+func (f *OutputFormatter) OutputJSON(stats *domain.UserStatistics) error {
+	filename := filepath.Join(f.outputDir, fmt.Sprintf("%s_statistics.json", stats.User.Login))
+
+	jsonData := f.buildJSONData(stats)
+
 	data, err := json.MarshalIndent(jsonData, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, filePerm); err != nil {
 		return fmt.Errorf("failed to write JSON file: %w", err)
 	}
 
 	return nil
 }
 
-// OutputCSV はCSV形式で出力します.
-func (f *OutputFormatter) OutputCSV(stats *domain.UserStatistics) error {
-	filename := fmt.Sprintf("%s/%s_statistics.csv", f.outputDir, stats.User.Login)
-
-	file, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("failed to create CSV file: %w", err)
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	// 基本統計のヘッダー
-	headers := []string{
-		"Metric", "Value",
-	}
+// writeCSVBasicStats は基本統計をCSVに書き込みます.
+func (f *OutputFormatter) writeCSVBasicStats(writer *csv.Writer, stats *domain.UserStatistics) error {
+	headers := []string{"Metric", "Value"}
 	if err := writer.Write(headers); err != nil {
 		return fmt.Errorf("failed to write CSV header: %w", err)
 	}
 
-	// 基本統計を書き込み
 	basicStats := [][]string{
 		{"Total Commits", fmt.Sprintf("%d", stats.TotalCommits)},
 		{"Total PR Created", fmt.Sprintf("%d", stats.TotalPRCreated)},
@@ -200,23 +202,26 @@ func (f *OutputFormatter) OutputCSV(stats *domain.UserStatistics) error {
 		}
 	}
 
-	// 年別統計のセクション
+	return nil
+}
+
+// writeCSVYearlyStats は年別統計をCSVに書き込みます.
+func (f *OutputFormatter) writeCSVYearlyStats(writer *csv.Writer, stats *domain.UserStatistics) error {
 	if err := writer.Write([]string{"", ""}); err != nil {
-		return err
+		return fmt.Errorf("failed to write CSV empty row: %w", err)
 	}
 
 	if err := writer.Write([]string{"Yearly Statistics", ""}); err != nil {
-		return err
+		return fmt.Errorf("failed to write CSV section header: %w", err)
 	}
 
 	yearlyHeaders := []string{
 		"Year", "Commits", "PR Created", "PR Merged", "Issues", "Reviews", "Additions", "Deletions",
 	}
 	if err := writer.Write(yearlyHeaders); err != nil {
-		return err
+		return fmt.Errorf("failed to write CSV yearly headers: %w", err)
 	}
 
-	// 年をソート
 	years := make([]int, 0, len(stats.YearlyStats))
 	for year := range stats.YearlyStats {
 		years = append(years, year)
@@ -238,31 +243,56 @@ func (f *OutputFormatter) OutputCSV(stats *domain.UserStatistics) error {
 			fmt.Sprintf("%d", yearlyStat.TotalDeletions),
 		}
 		if err := writer.Write(row); err != nil {
-			return err
+			return fmt.Errorf("failed to write CSV yearly row: %w", err)
 		}
 	}
 
 	return nil
 }
 
-// OutputTextSummary はテキスト要約を出力します.
-func (f *OutputFormatter) OutputTextSummary(stats *domain.UserStatistics) error {
-	filename := fmt.Sprintf("%s/%s_summary.txt", f.outputDir, stats.User.Login)
+// OutputCSV はCSV形式で出力します.
+func (f *OutputFormatter) OutputCSV(stats *domain.UserStatistics) error {
+	filename := filepath.Join(f.outputDir, fmt.Sprintf("%s_statistics.csv", stats.User.Login))
 
-	var sb strings.Builder
+	file, err := os.Create(filepath.Clean(filename))
+	if err != nil {
+		return fmt.Errorf("failed to create CSV file: %w", err)
+	}
 
-	sb.WriteString(fmt.Sprintf("=== %s のGitHub活動統計 ===\n\n", stats.User.Login))
-	sb.WriteString("この人を数字で表すと\n")
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			if err == nil {
+				err = fmt.Errorf("failed to close CSV file: %w", closeErr)
+			}
+		}
+	}()
 
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	if err := f.writeCSVBasicStats(writer, stats); err != nil {
+		return err
+	}
+
+	if err := f.writeCSVYearlyStats(writer, stats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// writeTextSummaryNumbers は数字で表すセクションを書き込みます.
+func (f *OutputFormatter) writeTextSummaryNumbers(sb *strings.Builder, stats *domain.UserStatistics) {
 	years := time.Now().Year() - stats.FirstActivityYear + 1
-	sb.WriteString(fmt.Sprintf("・%d年間で%d回のコミット\n", years, stats.TotalCommits))
-	sb.WriteString(fmt.Sprintf("・%d件のPull Requestを作成し、%d件をマージ\n", stats.TotalPRCreated, stats.TotalPRMerged))
-	sb.WriteString(fmt.Sprintf("・%d件のIssueを作成\n", stats.TotalIssues))
-	sb.WriteString(fmt.Sprintf("・%d件のPRレビューを実施\n", stats.TotalReviews))
-	sb.WriteString(fmt.Sprintf("・合計%d行の追加、%d行の削除\n\n", stats.TotalAdditions, stats.TotalDeletions))
+	fmt.Fprintf(sb, "・%d年間で%d回のコミット\n", years, stats.TotalCommits)
+	fmt.Fprintf(sb, "・%d件のPull Requestを作成し、%d件をマージ\n", stats.TotalPRCreated, stats.TotalPRMerged)
+	fmt.Fprintf(sb, "・%d件のIssueを作成\n", stats.TotalIssues)
+	fmt.Fprintf(sb, "・%d件のPRレビューを実施\n", stats.TotalReviews)
+	fmt.Fprintf(sb, "・合計%d行の追加、%d行の削除\n\n", stats.TotalAdditions, stats.TotalDeletions)
+}
 
-	sb.WriteString("エンジニアとしての特徴\n")
-
+// writeTextSummaryCharacteristics はエンジニアとしての特徴を書き込みます.
+func (f *OutputFormatter) writeTextSummaryCharacteristics(sb *strings.Builder, stats *domain.UserStatistics) {
 	if stats.TotalReviews > stats.TotalPRCreated {
 		sb.WriteString("・レビュー活動が活発で、チームのコード品質向上に大きく貢献\n")
 	}
@@ -272,26 +302,28 @@ func (f *OutputFormatter) OutputTextSummary(stats *domain.UserStatistics) error 
 	}
 
 	if len(stats.LongTermRepositories) > 0 {
-		sb.WriteString(fmt.Sprintf("・%d個のリポジトリに長期間（1年以上）関与し、継続的な貢献を実現\n", len(stats.LongTermRepositories)))
+		fmt.Fprintf(sb, "・%d個のリポジトリに長期間（1年以上）関与し、継続的な貢献を実現\n", len(stats.LongTermRepositories))
 	}
 
 	if stats.PeakActivityCommits > 0 {
-		sb.WriteString(fmt.Sprintf("・%d年が最も活動的で、%d回のコミットを実施\n", stats.PeakActivityYear, stats.PeakActivityCommits))
+		fmt.Fprintf(sb, "・%d年が最も活動的で、%d回のコミットを実施\n", stats.PeakActivityYear, stats.PeakActivityCommits)
 	}
+}
 
-	sb.WriteString("\n役割の変化が読み取れるポイント\n")
-
+// writeTextSummaryRoleTransition は役割の変化を書き込みます.
+func (f *OutputFormatter) writeTextSummaryRoleTransition(sb *strings.Builder, stats *domain.UserStatistics) {
 	for _, transition := range stats.RoleTransition {
 		if transition.PRCreated > 0 || transition.ReviewCount > 0 {
-			sb.WriteString(fmt.Sprintf("・%d年: %s (PR作成: %d, レビュー: %d)\n",
-				transition.Year, transition.Description, transition.PRCreated, transition.ReviewCount))
+			fmt.Fprintf(sb, "・%d年: %s (PR作成: %d, レビュー: %d)\n",
+				transition.Year, transition.Description, transition.PRCreated, transition.ReviewCount)
 		}
 	}
+}
 
-	sb.WriteString("\n最も貢献したリポジトリ TOP3\n")
-
+// writeTextSummaryRepositories はリポジトリ情報を書き込みます.
+func (f *OutputFormatter) writeTextSummaryRepositories(sb *strings.Builder, stats *domain.UserStatistics) {
 	for i, repo := range stats.TopRepositories {
-		sb.WriteString(fmt.Sprintf("%d. %s: %dコミット\n", i+1, repo.Repository, repo.CommitCount))
+		fmt.Fprintf(sb, "%d. %s: %dコミット\n", i+1, repo.Repository, repo.CommitCount)
 	}
 
 	if len(stats.LongTermRepositories) > 0 {
@@ -299,15 +331,35 @@ func (f *OutputFormatter) OutputTextSummary(stats *domain.UserStatistics) error 
 
 		for _, repo := range stats.LongTermRepositories {
 			duration := repo.LastActivity.Sub(repo.FirstActivity)
-			sb.WriteString(fmt.Sprintf("・%s: %d日間 (初回: %s, 最終: %s)\n",
+			fmt.Fprintf(sb, "・%s: %d日間 (初回: %s, 最終: %s)\n",
 				repo.Repository,
-				int(duration.Hours()/24),
+				int(duration.Hours()/hoursPerDay),
 				repo.FirstActivity.Format("2006-01-02"),
-				repo.LastActivity.Format("2006-01-02")))
+				repo.LastActivity.Format("2006-01-02"))
 		}
 	}
+}
 
-	if err := os.WriteFile(filename, []byte(sb.String()), 0644); err != nil {
+// OutputTextSummary はテキスト要約を出力します.
+func (f *OutputFormatter) OutputTextSummary(stats *domain.UserStatistics) error {
+	filename := filepath.Join(f.outputDir, fmt.Sprintf("%s_summary.txt", stats.User.Login))
+
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("=== %s のGitHub活動統計 ===\n\n", stats.User.Login))
+	sb.WriteString("この人を数字で表すと\n")
+	f.writeTextSummaryNumbers(&sb, stats)
+
+	sb.WriteString("エンジニアとしての特徴\n")
+	f.writeTextSummaryCharacteristics(&sb, stats)
+
+	sb.WriteString("\n役割の変化が読み取れるポイント\n")
+	f.writeTextSummaryRoleTransition(&sb, stats)
+
+	sb.WriteString("\n最も貢献したリポジトリ TOP3\n")
+	f.writeTextSummaryRepositories(&sb, stats)
+
+	if err := os.WriteFile(filepath.Clean(filename), []byte(sb.String()), filePerm); err != nil {
 		return fmt.Errorf("failed to write text summary: %w", err)
 	}
 
@@ -316,7 +368,7 @@ func (f *OutputFormatter) OutputTextSummary(stats *domain.UserStatistics) error 
 
 // OutputPresentationSummary はプレゼン用短文を出力します.
 func (f *OutputFormatter) OutputPresentationSummary(stats *domain.UserStatistics) error {
-	filename := fmt.Sprintf("%s/%s_presentation.txt", f.outputDir, stats.User.Login)
+	filename := filepath.Join(f.outputDir, fmt.Sprintf("%s_presentation.txt", stats.User.Login))
 
 	var sb strings.Builder
 
@@ -368,7 +420,7 @@ func (f *OutputFormatter) OutputPresentationSummary(stats *domain.UserStatistics
 		sb.WriteString(fmt.Sprintf("・最も貢献したリポジトリ: %s（%dコミット）\n", stats.TopRepositories[0].Repository, stats.TopRepositories[0].CommitCount))
 	}
 
-	if err := os.WriteFile(filename, []byte(sb.String()), 0644); err != nil {
+	if err := os.WriteFile(filepath.Clean(filename), []byte(sb.String()), filePerm); err != nil {
 		return fmt.Errorf("failed to write presentation summary: %w", err)
 	}
 

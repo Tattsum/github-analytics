@@ -1,3 +1,4 @@
+// Package domain defines core business entities and value objects.
 package domain
 
 import "time"
@@ -6,10 +7,15 @@ import "time"
 type ActivityType string
 
 const (
-	ActivityTypeCommit  ActivityType = "commit"
-	ActivityTypePR      ActivityType = "pull_request"
-	ActivityTypeIssue   ActivityType = "issue"
-	ActivityTypeReview  ActivityType = "review"
+	// ActivityTypeCommit はコミット活動を表します.
+	ActivityTypeCommit ActivityType = "commit"
+	// ActivityTypePR はPull Request活動を表します.
+	ActivityTypePR ActivityType = "pull_request"
+	// ActivityTypeIssue はIssue活動を表します.
+	ActivityTypeIssue ActivityType = "issue"
+	// ActivityTypeReview はレビュー活動を表します.
+	ActivityTypeReview ActivityType = "review"
+	// ActivityTypePRMerge はマージされたPull Request活動を表します.
 	ActivityTypePRMerge ActivityType = "pr_merge"
 )
 

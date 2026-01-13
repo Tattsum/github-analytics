@@ -1,3 +1,5 @@
+// Package infrastructure はインフラ層を提供します.
+// このパッケージは外部API、データベース、ファイルシステムなどの実装を提供します.
 package infrastructure
 
 import (
@@ -36,7 +38,9 @@ func NewGitHubClient(token string) *GitHubClient {
 
 	// GraphQL APIのrate limitは5000リクエスト/時
 	// 安全のため、4500リクエスト/時に制限
-	limiter := rate.NewLimiter(rate.Every(time.Hour/4500), 1)
+	const requestsPerHour = 4500
+
+	limiter := rate.NewLimiter(rate.Every(time.Hour/requestsPerHour), 1)
 
 	return &GitHubClient{
 		client:  githubv4.NewClient(tc),
@@ -54,12 +58,16 @@ func (c *GitHubClient) WaitForRateLimit(ctx context.Context) error {
 		waitTime := time.Until(c.lastRateLimitReset)
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf("context cancelled: %w", ctx.Err())
 		case <-time.After(waitTime):
 		}
 	}
 
-	return c.limiter.Wait(ctx)
+	if err := c.limiter.Wait(ctx); err != nil {
+		return fmt.Errorf("rate limiter wait failed: %w", err)
+	}
+
+	return nil
 }
 
 // Query はGraphQLクエリを実行します（rate limit対応）.

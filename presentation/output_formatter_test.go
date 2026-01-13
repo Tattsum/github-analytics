@@ -14,6 +14,7 @@ func TestNewOutputFormatter(t *testing.T) {
 	formatter := NewOutputFormatter("test-output")
 	if formatter == nil {
 		t.Error("NewOutputFormatter() should not return nil")
+		return
 	}
 
 	if formatter.outputDir != "test-output" {
