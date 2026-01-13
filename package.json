@@ -1,0 +1,15 @@
+{
+  "name": "github-analytics",
+  "version": "1.0.0",
+  "description": "GitHub Analytics - GitHub活動分析ツール",
+  "scripts": {
+    "lint:markdown": "markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**'",
+    "lint:markdown:fix": "markdownlint-cli2-fix '**/*.md' '!node_modules/**' '!vendor/**' '!output/**'"
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "^0.14.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
