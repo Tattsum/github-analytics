@@ -308,3 +308,16 @@ make clean
 - 明確で簡潔なメッセージを心がける
 - 変更の理由を説明する
 - 関連するIssue番号があれば記載する
+
+### GitHubへの初回push
+
+```bash
+# リモートリポジトリを設定（GitHubでリポジトリを作成後）
+git remote add origin https://github.com/Tattsum/github-analytics.git
+
+# またはSSHを使用する場合
+git remote add origin git@github.com:Tattsum/github-analytics.git
+
+# メインブランチにpush
+git push -u origin main
+```
