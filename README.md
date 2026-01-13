@@ -319,6 +319,7 @@ make clean
    - README、.gitignore、ライセンスは追加しない（既に存在するため）
 
 2. リモートリポジトリを設定（既に設定済みの場合はスキップ）:
+
    ```bash
    git remote add origin https://github.com/Tattsum/github-analytics.git
    # またはSSHを使用する場合
@@ -326,6 +327,7 @@ make clean
    ```
 
 3. メインブランチにpush:
+
    ```bash
    git push -u origin main
    ```
