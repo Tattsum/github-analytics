@@ -90,8 +90,6 @@ func (f *GitHubDataFetcher) FetchAllUserActivity(ctx context.Context, username s
 	}, nil
 }
 
-
-
 // findRepositoryInQuery はクエリ結果から指定されたリポジトリを探します.
 func (f *GitHubDataFetcher) findRepositoryInQuery(
 	repoContribs []struct {
