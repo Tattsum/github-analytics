@@ -121,6 +121,20 @@
 - **自動修正**: `make lint-markdown-fix`で自動修正可能な問題を修正
 - **必須チェック**: `make check`と`make ci`で自動的に実行される
 
+## JSON/YAML品質管理
+
+- **prettier**: すべてのJSON/YAMLファイルは`prettier`で検証される
+- **設定ファイル**: `.prettierrc.json`でルールを定義
+- **自動修正**: `make format-json-yaml`で自動修正可能な問題を修正
+- **必須チェック**: `make check`と`make ci`で自動的に実行される
+
+## GitHub Actions品質管理
+
+- **actionlint**: すべてのGitHub Actionsワークフローファイル（`.github/workflows/*.yml`）は`actionlint`で検証される
+- **自動検証**: `make lint-github-actions`で実行する
+- **必須チェック**: `make check`と`make ci`で自動的に実行される
+- **ワークフローファイル作成・変更時**: 必ず`make lint-github-actions`で検証する
+
 ## 参考資料
 
 - [Clean Architecture by Robert C. Martin](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
