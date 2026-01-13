@@ -311,13 +311,25 @@ make clean
 
 ### GitHubへの初回push
 
-```bash
-# リモートリポジトリを設定（GitHubでリポジトリを作成後）
-git remote add origin https://github.com/Tattsum/github-analytics.git
+1. GitHubでリポジトリを作成:
+   - https://github.com/new にアクセス
+   - リポジトリ名: `github-analytics`
+   - 説明: "GitHub活動を定量的に分析するツール"
+   - PublicまたはPrivateを選択
+   - README、.gitignore、ライセンスは追加しない（既に存在するため）
 
-# またはSSHを使用する場合
-git remote add origin git@github.com:Tattsum/github-analytics.git
+2. リモートリポジトリを設定（既に設定済みの場合はスキップ）:
+   ```bash
+   git remote add origin https://github.com/Tattsum/github-analytics.git
+   # またはSSHを使用する場合
+   git remote add origin git@github.com:Tattsum/github-analytics.git
+   ```
 
-# メインブランチにpush
-git push -u origin main
-```
+3. メインブランチにpush:
+   ```bash
+   git push -u origin main
+   ```
+
+4. GitHub Actionsが自動的に実行されます:
+   - テスト、リント、ビルドが自動実行されます
+   - Actionsタブで結果を確認できます
