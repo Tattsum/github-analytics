@@ -15,6 +15,9 @@ yarn.lock
 *.pb.go
 *.gen.go
 
+# golangci-lint config (has duplicate keys by design)
+.golangci.yml
+
 # Git
 .git/
 

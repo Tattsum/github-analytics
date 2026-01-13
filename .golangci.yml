@@ -7,14 +7,6 @@ run:
   timeout: 5m
   tests: true
 
-issues:
-  exclude-dirs:
-    - vendor
-    - output
-  exclude-files:
-    - ".*\\.pb\\.go$"
-    - ".*\\.gen\\.go$"
-
 output:
   formats:
     default: colored-line-number
@@ -157,6 +149,12 @@ linters:
     - nestif
 
 issues:
+  exclude-dirs:
+    - vendor
+    - output
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*\\.gen\\.go$"
   exclude-rules:
     # テストファイルは一部のルールを緩和
     - path: _test\.go
