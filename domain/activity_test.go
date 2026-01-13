@@ -3,31 +3,19 @@ package domain
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // assertActivity はActivityのアサーションを行います.
 func assertActivity(t *testing.T, got, want *Activity) {
 	t.Helper()
 
-	if got.Type != want.Type {
-		t.Errorf("NewActivity().Type = %v, want %v", got.Type, want.Type)
-	}
-
-	if got.Repository != want.Repository {
-		t.Errorf("NewActivity().Repository = %v, want %v", got.Repository, want.Repository)
-	}
-
-	if !got.Date.Equal(want.Date) {
-		t.Errorf("NewActivity().Date = %v, want %v", got.Date, want.Date)
-	}
-
-	if got.Additions != want.Additions {
-		t.Errorf("NewActivity().Additions = %v, want %v", got.Additions, want.Additions)
-	}
-
-	if got.Deletions != want.Deletions {
-		t.Errorf("NewActivity().Deletions = %v, want %v", got.Deletions, want.Deletions)
-	}
+	assert.Equal(t, want.Type, got.Type, "Type should match")
+	assert.Equal(t, want.Repository, got.Repository, "Repository should match")
+	assert.True(t, got.Date.Equal(want.Date), "Date should match")
+	assert.Equal(t, want.Additions, got.Additions, "Additions should match")
+	assert.Equal(t, want.Deletions, got.Deletions, "Deletions should match")
 }
 
 func TestNewActivity(t *testing.T) {
@@ -109,13 +97,8 @@ func TestNewRepositoryActivity(t *testing.T) {
 			t.Parallel()
 
 			got := NewRepositoryActivity(tt.repo)
-			if got.Repository != tt.want.Repository {
-				t.Errorf("NewRepositoryActivity().Repository = %v, want %v", got.Repository, tt.want.Repository)
-			}
-
-			if got.CommitCount != 0 {
-				t.Errorf("NewRepositoryActivity().CommitCount = %v, want 0", got.CommitCount)
-			}
+			assert.Equal(t, tt.want.Repository, got.Repository, "Repository should match")
+			assert.Equal(t, 0, got.CommitCount, "CommitCount should be 0")
 		})
 	}
 }

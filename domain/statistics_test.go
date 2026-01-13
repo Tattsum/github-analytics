@@ -2,6 +2,8 @@ package domain
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewYearlyStatistics(t *testing.T) {
@@ -34,9 +36,7 @@ func TestNewYearlyStatistics(t *testing.T) {
 			t.Parallel()
 
 			got := NewYearlyStatistics(tt.year)
-			if got.Year != tt.want.Year {
-				t.Errorf("NewYearlyStatistics().Year = %v, want %v", got.Year, tt.want.Year)
-			}
+			assert.Equal(t, tt.want.Year, got.Year, "Year should match")
 		})
 	}
 }
@@ -47,21 +47,10 @@ func TestNewUserStatistics(t *testing.T) {
 	user := NewUser("testuser", "Test User", "2020-01-01T00:00:00Z")
 	got := NewUserStatistics(user)
 
-	if got.User != user {
-		t.Errorf("NewUserStatistics().User = %v, want %v", got.User, user)
-	}
-
-	if got.TotalCommits != 0 {
-		t.Errorf("NewUserStatistics().TotalCommits = %v, want 0", got.TotalCommits)
-	}
-
-	if got.YearlyStats == nil {
-		t.Error("NewUserStatistics().YearlyStats should not be nil")
-	}
-
-	if got.TopRepositories == nil {
-		t.Error("NewUserStatistics().TopRepositories should not be nil")
-	}
+	assert.Equal(t, user, got.User, "User should match")
+	assert.Equal(t, 0, got.TotalCommits, "TotalCommits should be 0")
+	assert.NotNil(t, got.YearlyStats, "YearlyStats should not be nil")
+	assert.NotNil(t, got.TopRepositories, "TopRepositories should not be nil")
 }
 
 func TestUserStatistics_CalculatePRToReviewRatio(t *testing.T) {
@@ -110,9 +99,7 @@ func TestUserStatistics_CalculatePRToReviewRatio(t *testing.T) {
 			stats.TotalReviews = tt.totalReviews
 			stats.CalculatePRToReviewRatio()
 
-			if stats.PRToReviewRatio != tt.want {
-				t.Errorf("UserStatistics.CalculatePRToReviewRatio() = %v, want %v", stats.PRToReviewRatio, tt.want)
-			}
+			assert.Equal(t, tt.want, stats.PRToReviewRatio, "PRToReviewRatio should match")
 		})
 	}
 }

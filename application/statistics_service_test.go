@@ -4,6 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/Tattsum/github-analytics/domain"
 	"github.com/Tattsum/github-analytics/infrastructure"
 )
@@ -12,57 +15,38 @@ func TestNewStatisticsService(t *testing.T) {
 	t.Parallel()
 
 	service := NewStatisticsService()
-	if service == nil {
-		t.Error("NewStatisticsService() should not return nil")
-	}
+	assert.NotNil(t, service, "NewStatisticsService() should not return nil")
 }
 
 // assertEmptyStats は空の統計のアサーションを行います.
 func assertEmptyStats(t *testing.T, stats *domain.UserStatistics) {
 	t.Helper()
 
-	if stats.TotalCommits != 0 {
-		t.Errorf("TotalCommits = %v, want 0", stats.TotalCommits)
-	}
-
-	if stats.TotalPRCreated != 0 {
-		t.Errorf("TotalPRCreated = %v, want 0", stats.TotalPRCreated)
-	}
+	assert.Equal(t, 0, stats.TotalCommits, "TotalCommits should be 0")
+	assert.Equal(t, 0, stats.TotalPRCreated, "TotalPRCreated should be 0")
 }
 
 // assertCommitStats はコミット統計のアサーションを行います.
 func assertCommitStats(t *testing.T, stats *domain.UserStatistics, wantCommits, wantYear int) {
 	t.Helper()
 
-	if stats.TotalCommits != wantCommits {
-		t.Errorf("TotalCommits = %v, want %v", stats.TotalCommits, wantCommits)
-	}
-
-	if stats.FirstActivityYear != wantYear {
-		t.Errorf("FirstActivityYear = %v, want %v", stats.FirstActivityYear, wantYear)
-	}
+	assert.Equal(t, wantCommits, stats.TotalCommits, "TotalCommits should match")
+	assert.Equal(t, wantYear, stats.FirstActivityYear, "FirstActivityYear should match")
 }
 
 // assertPRStats はPR統計のアサーションを行います.
 func assertPRStats(t *testing.T, stats *domain.UserStatistics, wantCreated, wantMerged int) {
 	t.Helper()
 
-	if stats.TotalPRCreated != wantCreated {
-		t.Errorf("TotalPRCreated = %v, want %v", stats.TotalPRCreated, wantCreated)
-	}
-
-	if stats.TotalPRMerged != wantMerged {
-		t.Errorf("TotalPRMerged = %v, want %v", stats.TotalPRMerged, wantMerged)
-	}
+	assert.Equal(t, wantCreated, stats.TotalPRCreated, "TotalPRCreated should match")
+	assert.Equal(t, wantMerged, stats.TotalPRMerged, "TotalPRMerged should match")
 }
 
 // assertReviewStats はレビュー統計のアサーションを行います.
 func assertReviewStats(t *testing.T, stats *domain.UserStatistics, wantReviews int) {
 	t.Helper()
 
-	if stats.TotalReviews != wantReviews {
-		t.Errorf("TotalReviews = %v, want %v", stats.TotalReviews, wantReviews)
-	}
+	assert.Equal(t, wantReviews, stats.TotalReviews, "TotalReviews should match")
 }
 
 // createPRsWithMerged はマージされたPRを含むPRリストを作成します.
@@ -99,13 +83,8 @@ func TestStatisticsService_CalculateStatistics(t *testing.T) {
 			service := NewStatisticsService()
 
 			stats, err := service.CalculateStatistics(tt.data)
-			if err != nil {
-				t.Fatalf("CalculateStatistics() error = %v", err)
-			}
-
-			if stats == nil {
-				t.Fatal("CalculateStatistics() returned nil")
-			}
+			require.NoError(t, err, "CalculateStatistics() should not return error")
+			require.NotNil(t, stats, "CalculateStatistics() should not return nil")
 
 			tt.want(t, stats)
 		})
@@ -213,21 +192,11 @@ func TestStatisticsService_CalculateStatistics_YearlyStats(t *testing.T) {
 	}
 
 	stats, err := service.CalculateStatistics(data)
-	if err != nil {
-		t.Fatalf("CalculateStatistics() error = %v", err)
-	}
+	require.NoError(t, err, "CalculateStatistics() should not return error")
 
-	if len(stats.YearlyStats) != 2 {
-		t.Errorf("YearlyStats length = %v, want 2", len(stats.YearlyStats))
-	}
-
-	if stats.YearlyStats[2020].CommitCount != 1 {
-		t.Errorf("YearlyStats[2020].CommitCount = %v, want 1", stats.YearlyStats[2020].CommitCount)
-	}
-
-	if stats.YearlyStats[2021].CommitCount != 1 {
-		t.Errorf("YearlyStats[2021].CommitCount = %v, want 1", stats.YearlyStats[2021].CommitCount)
-	}
+	assert.Equal(t, 2, len(stats.YearlyStats), "YearlyStats should have 2 entries")
+	assert.Equal(t, 1, stats.YearlyStats[2020].CommitCount, "YearlyStats[2020].CommitCount should be 1")
+	assert.Equal(t, 1, stats.YearlyStats[2021].CommitCount, "YearlyStats[2021].CommitCount should be 1")
 }
 
 func TestStatisticsService_CalculateStatistics_TopRepositories(t *testing.T) {
@@ -248,22 +217,16 @@ func TestStatisticsService_CalculateStatistics_TopRepositories(t *testing.T) {
 	}
 
 	stats, err := service.CalculateStatistics(data)
-	if err != nil {
-		t.Fatalf("CalculateStatistics() error = %v", err)
-	}
+	require.NoError(t, err, "CalculateStatistics() should not return error")
 
-	if len(stats.TopRepositories) > 3 {
-		t.Errorf("TopRepositories length = %v, want <= 3", len(stats.TopRepositories))
-	}
+	assert.LessOrEqual(t, len(stats.TopRepositories), 3, "TopRepositories length should be <= 3")
 
 	if len(stats.TopRepositories) > 0 {
 		// コミット数が多い順にソートされていることを確認
 		prevCount := stats.TopRepositories[0].CommitCount
 		for i := 1; i < len(stats.TopRepositories); i++ {
-			if stats.TopRepositories[i].CommitCount > prevCount {
-				t.Error("TopRepositories should be sorted by commit count (descending)")
-			}
-
+			assert.LessOrEqual(t, stats.TopRepositories[i].CommitCount, prevCount,
+				"TopRepositories should be sorted by commit count (descending)")
 			prevCount = stats.TopRepositories[i].CommitCount
 		}
 	}

@@ -1,6 +1,10 @@
 package domain
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestNewUser(t *testing.T) {
 	t.Parallel()
@@ -42,17 +46,9 @@ func TestNewUser(t *testing.T) {
 			t.Parallel()
 
 			got := NewUser(tt.login, tt.userName, tt.createdAt)
-			if got.Login != tt.want.Login {
-				t.Errorf("NewUser().Login = %v, want %v", got.Login, tt.want.Login)
-			}
-
-			if got.Name != tt.want.Name {
-				t.Errorf("NewUser().Name = %v, want %v", got.Name, tt.want.Name)
-			}
-
-			if got.CreatedAt != tt.want.CreatedAt {
-				t.Errorf("NewUser().CreatedAt = %v, want %v", got.CreatedAt, tt.want.CreatedAt)
-			}
+			assert.Equal(t, tt.want.Login, got.Login, "Login should match")
+			assert.Equal(t, tt.want.Name, got.Name, "Name should match")
+			assert.Equal(t, tt.want.CreatedAt, got.CreatedAt, "CreatedAt should match")
 		})
 	}
 }
@@ -83,9 +79,7 @@ func TestUser_IsValid(t *testing.T) {
 			t.Parallel()
 
 			got := tt.user.Login != ""
-			if got != tt.want {
-				t.Errorf("User.IsValid() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got, "IsValid() should match expected value")
 		})
 	}
 }

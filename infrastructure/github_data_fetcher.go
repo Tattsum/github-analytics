@@ -90,47 +90,179 @@ func (f *GitHubDataFetcher) FetchAllUserActivity(ctx context.Context, username s
 	}, nil
 }
 
-// processCommitContributions はコミット貢献を処理します.
-func (f *GitHubDataFetcher) processCommitContributions(repoContribs []struct {
-	Repository struct {
-		NameWithOwner string
-	}
-	Contributions struct {
-		TotalCount int
-		Nodes      []struct {
-			OccurredAt githubv4.DateTime
-			Commit     struct {
-				OID string
+
+
+// findRepositoryInQuery はクエリ結果から指定されたリポジトリを探します.
+func (f *GitHubDataFetcher) findRepositoryInQuery(
+	repoContribs []struct {
+		Repository struct {
+			NameWithOwner string
+		}
+		Contributions struct {
+			TotalCount int
+			Nodes      []struct {
+				OccurredAt githubv4.DateTime
+				Commit     struct {
+					OID string
+				}
 			}
+			PageInfo struct {
+				HasNextPage bool
+				EndCursor   string
+			}
+		} `graphql:"contributions(first: $first, after: $after)"`
+	},
+	repoName string,
+) (int, bool) {
+	for i, repoContrib := range repoContribs {
+		if repoContrib.Repository.NameWithOwner == repoName {
+			return i, true
 		}
-		PageInfo struct {
-			HasNextPage bool
-			EndCursor   string
+	}
+
+	return -1, false
+}
+
+// processCommitContributionsFromRepo はリポジトリのContributionsを処理します.
+func (f *GitHubDataFetcher) processCommitContributionsFromRepo(
+	repoContrib struct {
+		Repository struct {
+			NameWithOwner string
 		}
-	} `graphql:"contributions(first: $first, after: $after)"`
-}) []*domain.Activity {
+		Contributions struct {
+			TotalCount int
+			Nodes      []struct {
+				OccurredAt githubv4.DateTime
+				Commit     struct {
+					OID string
+				}
+			}
+			PageInfo struct {
+				HasNextPage bool
+				EndCursor   string
+			}
+		} `graphql:"contributions(first: $first, after: $after)"`
+	},
+) []*domain.Activity {
 	activities := make([]*domain.Activity, 0)
 
-	for _, repoContrib := range repoContribs {
-		for _, contrib := range repoContrib.Contributions.Nodes {
-			activity := domain.NewActivity(
-				domain.ActivityTypeCommit,
-				repoContrib.Repository.NameWithOwner,
-				contrib.OccurredAt.Time,
-				0, // Additions: GraphQL APIの制限により取得不可
-				0, // Deletions: GraphQL APIの制限により取得不可
-			)
-			activities = append(activities, activity)
-		}
+	for _, contrib := range repoContrib.Contributions.Nodes {
+		activity := domain.NewActivity(
+			domain.ActivityTypeCommit,
+			repoContrib.Repository.NameWithOwner,
+			contrib.OccurredAt.Time,
+			0, // Additions: GraphQL APIの制限により取得不可
+			0, // Deletions: GraphQL APIの制限により取得不可
+		)
+		activities = append(activities, activity)
 	}
 
 	return activities
+}
+
+// fetchRepositoryCommitContributionsPage は特定リポジトリのコミット貢献の1ページを取得します.
+func (f *GitHubDataFetcher) fetchRepositoryCommitContributionsPage(
+	ctx context.Context,
+	username string,
+	repoName string,
+	from, to githubv4.DateTime,
+	after *githubv4.String,
+) ([]*domain.Activity, *githubv4.String, bool, error) {
+	var query struct {
+		User struct {
+			ContributionsCollection struct {
+				CommitContributionsByRepository []struct {
+					Repository struct {
+						NameWithOwner string
+					}
+					Contributions struct {
+						TotalCount int
+						Nodes      []struct {
+							OccurredAt githubv4.DateTime
+							Commit     struct {
+								OID string
+							}
+						}
+						PageInfo struct {
+							HasNextPage bool
+							EndCursor   string
+						}
+					} `graphql:"contributions(first: $first, after: $after)"`
+				}
+			} `graphql:"contributionsCollection(from: $from, to: $to)"`
+		} `graphql:"user(login: $login)"`
+	}
+
+	first := 100
+	variables := map[string]interface{}{
+		"login": githubv4.String(username),
+		"from":  from,
+		"to":    to,
+		"first": githubv4.Int(first),
+		"after": after,
+	}
+
+	if err := f.repo.client.Query(ctx, &query, variables); err != nil {
+		return nil, nil, false, fmt.Errorf("failed to fetch commit contributions for repository %s: %w", repoName, err)
+	}
+
+	idx, found := f.findRepositoryInQuery(query.User.ContributionsCollection.CommitContributionsByRepository, repoName)
+	if !found {
+		return nil, nil, false, nil
+	}
+
+	repoContrib := query.User.ContributionsCollection.CommitContributionsByRepository[idx]
+	activities := f.processCommitContributionsFromRepo(repoContrib)
+
+	var nextAfter *githubv4.String
+
+	if repoContrib.Contributions.PageInfo.HasNextPage {
+		cursor := githubv4.String(repoContrib.Contributions.PageInfo.EndCursor)
+		nextAfter = &cursor
+	}
+
+	return activities, nextAfter, repoContrib.Contributions.PageInfo.HasNextPage, nil
+}
+
+// fetchRepositoryCommitContributionsPaginated は特定リポジトリのコミット貢献をページネーションで取得します.
+// 最初のページは既に取得済みのため、2ページ目以降を取得します.
+func (f *GitHubDataFetcher) fetchRepositoryCommitContributionsPaginated(
+	ctx context.Context,
+	username string,
+	repoName string,
+	from, to githubv4.DateTime,
+	startAfter *githubv4.String,
+) ([]*domain.Activity, error) {
+	activities := make([]*domain.Activity, 0)
+	after := startAfter
+
+	for {
+		pageActivities, nextAfter, hasNext, err := f.fetchRepositoryCommitContributionsPage(ctx, username, repoName, from, to, after)
+		if err != nil {
+			return nil, err
+		}
+
+		if pageActivities == nil {
+			break
+		}
+
+		activities = append(activities, pageActivities...)
+
+		if !hasNext {
+			break
+		}
+
+		after = nextAfter
+	}
+
+	return activities, nil
 }
 
 // FetchCommits はコミットを取得します
 // 注意: GitHub GraphQL APIのContributionsCollectionでは、コミットのAdditions/Deletionsを
 // 直接取得できないため、コミット数と日時のみを取得します。
 // 変更行数の詳細が必要な場合は、各リポジトリのコミット履歴を個別に取得する必要があります。
+// ページネーション: 各リポジトリのContributionsをページネーションで取得します。
 func (f *GitHubDataFetcher) FetchCommits(ctx context.Context, username string, _ bool) ([]*domain.Activity, error) {
 	var query struct {
 		User struct {
@@ -157,13 +289,12 @@ func (f *GitHubDataFetcher) FetchCommits(ctx context.Context, username string, _
 		} `graphql:"user(login: $login)"`
 	}
 
-	activities := make([]*domain.Activity, 0)
 	from := githubv4.DateTime{Time: time.Now().AddDate(-10, 0, 0)}
 	to := githubv4.DateTime{Time: time.Now()}
 	first := 100
 	after := (*githubv4.String)(nil)
 
-	// ページネーション未実装のため、最初のページのみ取得
+	// 最初のクエリでリポジトリのリストを取得
 	variables := map[string]interface{}{
 		"login": githubv4.String(username),
 		"from":  from,
@@ -176,7 +307,64 @@ func (f *GitHubDataFetcher) FetchCommits(ctx context.Context, username string, _
 		return nil, fmt.Errorf("failed to fetch commits: %w", err)
 	}
 
-	activities = append(activities, f.processCommitContributions(query.User.ContributionsCollection.CommitContributionsByRepository)...)
+	return f.processCommitsWithPagination(ctx, username, query.User.ContributionsCollection.CommitContributionsByRepository, from, to)
+}
+
+// processCommitsWithPagination はコミット貢献をページネーションで処理します.
+func (f *GitHubDataFetcher) processCommitsWithPagination(
+	ctx context.Context,
+	username string,
+	repoContribs []struct {
+		Repository struct {
+			NameWithOwner string
+		}
+		Contributions struct {
+			TotalCount int
+			Nodes      []struct {
+				OccurredAt githubv4.DateTime
+				Commit     struct {
+					OID string
+				}
+			}
+			PageInfo struct {
+				HasNextPage bool
+				EndCursor   string
+			}
+		} `graphql:"contributions(first: $first, after: $after)"`
+	},
+	from, to githubv4.DateTime,
+) ([]*domain.Activity, error) {
+	activities := make([]*domain.Activity, 0)
+
+	// 各リポジトリのContributionsをページネーションで取得
+	for _, repoContrib := range repoContribs {
+		repoName := repoContrib.Repository.NameWithOwner
+
+		// 最初のページのContributionsを処理
+		for _, contrib := range repoContrib.Contributions.Nodes {
+			activity := domain.NewActivity(
+				domain.ActivityTypeCommit,
+				repoContrib.Repository.NameWithOwner,
+				contrib.OccurredAt.Time,
+				0, // Additions: GraphQL APIの制限により取得不可
+				0, // Deletions: GraphQL APIの制限により取得不可
+			)
+			activities = append(activities, activity)
+		}
+
+		// このリポジトリに次のページがある場合、ページネーションで取得
+		if repoContrib.Contributions.PageInfo.HasNextPage {
+			startAfter := githubv4.String(repoContrib.Contributions.PageInfo.EndCursor)
+
+			repoActivities, err := f.fetchRepositoryCommitContributionsPaginated(ctx, username, repoName, from, to, &startAfter)
+			if err != nil {
+				// エラーが発生しても他のリポジトリの処理は続行
+				continue
+			}
+
+			activities = append(activities, repoActivities...)
+		}
+	}
 
 	return activities, nil
 }
@@ -301,45 +489,175 @@ func (f *GitHubDataFetcher) FetchIssues(ctx context.Context, username string, _ 
 	return activities, nil
 }
 
-// processReviewContributions はレビュー貢献を処理します.
-func (f *GitHubDataFetcher) processReviewContributions(repoContribs []struct {
-	Repository struct {
-		NameWithOwner string
-	}
-	Contributions struct {
-		TotalCount int
-		Nodes      []struct {
-			OccurredAt        githubv4.DateTime
-			PullRequestReview struct {
-				State string
+// findReviewRepositoryInQuery はクエリ結果から指定されたリポジトリを探します.
+func (f *GitHubDataFetcher) findReviewRepositoryInQuery(
+	repoContribs []struct {
+		Repository struct {
+			NameWithOwner string
+		}
+		Contributions struct {
+			TotalCount int
+			Nodes      []struct {
+				OccurredAt        githubv4.DateTime
+				PullRequestReview struct {
+					State string
+				}
 			}
+			PageInfo struct {
+				HasNextPage bool
+				EndCursor   string
+			}
+		} `graphql:"contributions(first: $first, after: $after)"`
+	},
+	repoName string,
+) (int, bool) {
+	for i, repoContrib := range repoContribs {
+		if repoContrib.Repository.NameWithOwner == repoName {
+			return i, true
 		}
-		PageInfo struct {
-			HasNextPage bool
-			EndCursor   string
+	}
+
+	return -1, false
+}
+
+// processReviewContributionsFromRepo はリポジトリのレビューContributionsを処理します.
+func (f *GitHubDataFetcher) processReviewContributionsFromRepo(
+	repoContrib struct {
+		Repository struct {
+			NameWithOwner string
 		}
-	} `graphql:"contributions(first: $first, after: $after)"`
-}) []*domain.Activity {
+		Contributions struct {
+			TotalCount int
+			Nodes      []struct {
+				OccurredAt        githubv4.DateTime
+				PullRequestReview struct {
+					State string
+				}
+			}
+			PageInfo struct {
+				HasNextPage bool
+				EndCursor   string
+			}
+		} `graphql:"contributions(first: $first, after: $after)"`
+	},
+) []*domain.Activity {
 	activities := make([]*domain.Activity, 0)
 
-	for _, repoContrib := range repoContribs {
-		for _, contrib := range repoContrib.Contributions.Nodes {
-			activity := domain.NewActivity(
-				domain.ActivityTypeReview,
-				repoContrib.Repository.NameWithOwner,
-				contrib.OccurredAt.Time,
-				0,
-				0,
-			)
-			activity.IsReview = true
-			activities = append(activities, activity)
-		}
+	for _, contrib := range repoContrib.Contributions.Nodes {
+		activity := domain.NewActivity(
+			domain.ActivityTypeReview,
+			repoContrib.Repository.NameWithOwner,
+			contrib.OccurredAt.Time,
+			0,
+			0,
+		)
+		activity.IsReview = true
+		activities = append(activities, activity)
 	}
 
 	return activities
 }
 
+// fetchRepositoryReviewContributionsPage は特定リポジトリのレビュー貢献の1ページを取得します.
+func (f *GitHubDataFetcher) fetchRepositoryReviewContributionsPage(
+	ctx context.Context,
+	username string,
+	repoName string,
+	from, to githubv4.DateTime,
+	after *githubv4.String,
+) ([]*domain.Activity, *githubv4.String, bool, error) {
+	var query struct {
+		User struct {
+			ContributionsCollection struct {
+				PullRequestReviewContributionsByRepository []struct {
+					Repository struct {
+						NameWithOwner string
+					}
+					Contributions struct {
+						TotalCount int
+						Nodes      []struct {
+							OccurredAt        githubv4.DateTime
+							PullRequestReview struct {
+								State string
+							}
+						}
+						PageInfo struct {
+							HasNextPage bool
+							EndCursor   string
+						}
+					} `graphql:"contributions(first: $first, after: $after)"`
+				}
+			} `graphql:"contributionsCollection(from: $from, to: $to)"`
+		} `graphql:"user(login: $login)"`
+	}
+
+	first := 100
+	variables := map[string]interface{}{
+		"login": githubv4.String(username),
+		"from":  from,
+		"to":    to,
+		"first": githubv4.Int(first),
+		"after": after,
+	}
+
+	if err := f.repo.client.Query(ctx, &query, variables); err != nil {
+		return nil, nil, false, fmt.Errorf("failed to fetch review contributions for repository %s: %w", repoName, err)
+	}
+
+	idx, found := f.findReviewRepositoryInQuery(query.User.ContributionsCollection.PullRequestReviewContributionsByRepository, repoName)
+	if !found {
+		return nil, nil, false, nil
+	}
+
+	repoContrib := query.User.ContributionsCollection.PullRequestReviewContributionsByRepository[idx]
+	activities := f.processReviewContributionsFromRepo(repoContrib)
+
+	var nextAfter *githubv4.String
+
+	if repoContrib.Contributions.PageInfo.HasNextPage {
+		cursor := githubv4.String(repoContrib.Contributions.PageInfo.EndCursor)
+		nextAfter = &cursor
+	}
+
+	return activities, nextAfter, repoContrib.Contributions.PageInfo.HasNextPage, nil
+}
+
+// fetchRepositoryReviewContributionsPaginated は特定リポジトリのレビュー貢献をページネーションで取得します.
+// 最初のページは既に取得済みのため、2ページ目以降を取得します.
+func (f *GitHubDataFetcher) fetchRepositoryReviewContributionsPaginated(
+	ctx context.Context,
+	username string,
+	repoName string,
+	from, to githubv4.DateTime,
+	startAfter *githubv4.String,
+) ([]*domain.Activity, error) {
+	activities := make([]*domain.Activity, 0)
+	after := startAfter
+
+	for {
+		pageActivities, nextAfter, hasNext, err := f.fetchRepositoryReviewContributionsPage(ctx, username, repoName, from, to, after)
+		if err != nil {
+			return nil, err
+		}
+
+		if pageActivities == nil {
+			break
+		}
+
+		activities = append(activities, pageActivities...)
+
+		if !hasNext {
+			break
+		}
+
+		after = nextAfter
+	}
+
+	return activities, nil
+}
+
 // FetchReviews はPRレビューを取得します.
+// ページネーション: 各リポジトリのContributionsをページネーションで取得します。
 func (f *GitHubDataFetcher) FetchReviews(ctx context.Context, username string, _ bool) ([]*domain.Activity, error) {
 	var query struct {
 		User struct {
@@ -366,13 +684,12 @@ func (f *GitHubDataFetcher) FetchReviews(ctx context.Context, username string, _
 		} `graphql:"user(login: $login)"`
 	}
 
-	activities := make([]*domain.Activity, 0)
 	from := githubv4.DateTime{Time: time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC)}
 	to := githubv4.DateTime{Time: time.Now()}
 	first := 100
 	after := (*githubv4.String)(nil)
 
-	// ページネーション未実装のため、最初のページのみ取得
+	// 最初のクエリでリポジトリのリストを取得
 	variables := map[string]interface{}{
 		"login": githubv4.String(username),
 		"from":  from,
@@ -385,7 +702,65 @@ func (f *GitHubDataFetcher) FetchReviews(ctx context.Context, username string, _
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
 	}
 
-	activities = append(activities, f.processReviewContributions(query.User.ContributionsCollection.PullRequestReviewContributionsByRepository)...)
+	return f.processReviewsWithPagination(ctx, username, query.User.ContributionsCollection.PullRequestReviewContributionsByRepository, from, to)
+}
+
+// processReviewsWithPagination はレビュー貢献をページネーションで処理します.
+func (f *GitHubDataFetcher) processReviewsWithPagination(
+	ctx context.Context,
+	username string,
+	repoContribs []struct {
+		Repository struct {
+			NameWithOwner string
+		}
+		Contributions struct {
+			TotalCount int
+			Nodes      []struct {
+				OccurredAt        githubv4.DateTime
+				PullRequestReview struct {
+					State string
+				}
+			}
+			PageInfo struct {
+				HasNextPage bool
+				EndCursor   string
+			}
+		} `graphql:"contributions(first: $first, after: $after)"`
+	},
+	from, to githubv4.DateTime,
+) ([]*domain.Activity, error) {
+	activities := make([]*domain.Activity, 0)
+
+	// 各リポジトリのContributionsをページネーションで取得
+	for _, repoContrib := range repoContribs {
+		repoName := repoContrib.Repository.NameWithOwner
+
+		// 最初のページのContributionsを処理
+		for _, contrib := range repoContrib.Contributions.Nodes {
+			activity := domain.NewActivity(
+				domain.ActivityTypeReview,
+				repoContrib.Repository.NameWithOwner,
+				contrib.OccurredAt.Time,
+				0,
+				0,
+			)
+			activity.IsReview = true
+			activities = append(activities, activity)
+		}
+
+		// このリポジトリに次のページがある場合、ページネーションで取得
+		if repoContrib.Contributions.PageInfo.HasNextPage {
+			startAfter := githubv4.String(repoContrib.Contributions.PageInfo.EndCursor)
+
+			repoActivities, err := f.fetchRepositoryReviewContributionsPaginated(ctx, username, repoName, from, to, &startAfter)
+			if err != nil {
+				// エラーが発生しても他のリポジトリの処理は続行
+				continue
+			}
+
+			activities = append(activities, repoActivities...)
+		}
+	}
 
 	return activities, nil
 }

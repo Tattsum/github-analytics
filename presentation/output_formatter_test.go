@@ -5,6 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/Tattsum/github-analytics/domain"
 )
 
@@ -12,14 +15,8 @@ func TestNewOutputFormatter(t *testing.T) {
 	t.Parallel()
 
 	formatter := NewOutputFormatter("test-output")
-	if formatter == nil {
-		t.Error("NewOutputFormatter() should not return nil")
-		return
-	}
-
-	if formatter.outputDir != "test-output" {
-		t.Errorf("NewOutputFormatter().outputDir = %v, want test-output", formatter.outputDir)
-	}
+	assert.NotNil(t, formatter, "NewOutputFormatter() should not return nil")
+	assert.Equal(t, "test-output", formatter.outputDir, "outputDir should match")
 }
 
 func TestOutputFormatter_FormatAll(t *testing.T) {
@@ -38,9 +35,7 @@ func TestOutputFormatter_FormatAll(t *testing.T) {
 	stats.TotalReviews = 4
 
 	err := formatter.FormatAll(stats)
-	if err != nil {
-		t.Fatalf("FormatAll() error = %v", err)
-	}
+	require.NoError(t, err, "FormatAll() should not return error")
 
 	// ファイルが作成されていることを確認
 	expectedFiles := []string{
@@ -52,9 +47,8 @@ func TestOutputFormatter_FormatAll(t *testing.T) {
 
 	for _, filename := range expectedFiles {
 		filePath := filepath.Join(tmpDir, filename)
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
-			t.Errorf("FormatAll() did not create file: %s", filename)
-		}
+		_, err := os.Stat(filePath)
+		assert.NoError(t, err, "FormatAll() should create file: %s", filename)
 	}
 }
 
@@ -70,14 +64,11 @@ func TestOutputFormatter_OutputJSON(t *testing.T) {
 	stats.FirstActivityYear = 2020
 
 	err := formatter.OutputJSON(stats)
-	if err != nil {
-		t.Fatalf("OutputJSON() error = %v", err)
-	}
+	require.NoError(t, err, "OutputJSON() should not return error")
 
 	filePath := filepath.Join(tmpDir, "testuser_statistics.json")
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		t.Error("OutputJSON() did not create JSON file")
-	}
+	_, err = os.Stat(filePath)
+	assert.NoError(t, err, "OutputJSON() should create JSON file")
 }
 
 func TestOutputFormatter_OutputCSV(t *testing.T) {
@@ -93,14 +84,11 @@ func TestOutputFormatter_OutputCSV(t *testing.T) {
 	stats.YearlyStats[2020].CommitCount = 10
 
 	err := formatter.OutputCSV(stats)
-	if err != nil {
-		t.Fatalf("OutputCSV() error = %v", err)
-	}
+	require.NoError(t, err, "OutputCSV() should not return error")
 
 	filePath := filepath.Join(tmpDir, "testuser_statistics.csv")
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		t.Error("OutputCSV() did not create CSV file")
-	}
+	_, err = os.Stat(filePath)
+	assert.NoError(t, err, "OutputCSV() should create CSV file")
 }
 
 func TestOutputFormatter_OutputTextSummary(t *testing.T) {
@@ -119,14 +107,11 @@ func TestOutputFormatter_OutputTextSummary(t *testing.T) {
 	stats.PeakActivityCommits = 10
 
 	err := formatter.OutputTextSummary(stats)
-	if err != nil {
-		t.Fatalf("OutputTextSummary() error = %v", err)
-	}
+	require.NoError(t, err, "OutputTextSummary() should not return error")
 
 	filePath := filepath.Join(tmpDir, "testuser_summary.txt")
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		t.Error("OutputTextSummary() did not create text summary file")
-	}
+	_, err = os.Stat(filePath)
+	assert.NoError(t, err, "OutputTextSummary() should create text summary file")
 }
 
 func TestOutputFormatter_OutputPresentationSummary(t *testing.T) {
@@ -143,14 +128,11 @@ func TestOutputFormatter_OutputPresentationSummary(t *testing.T) {
 	stats.FirstActivityYear = 2020
 
 	err := formatter.OutputPresentationSummary(stats)
-	if err != nil {
-		t.Fatalf("OutputPresentationSummary() error = %v", err)
-	}
+	require.NoError(t, err, "OutputPresentationSummary() should not return error")
 
 	filePath := filepath.Join(tmpDir, "testuser_presentation.txt")
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		t.Error("OutputPresentationSummary() did not create presentation summary file")
-	}
+	_, err = os.Stat(filePath)
+	assert.NoError(t, err, "OutputPresentationSummary() should create presentation summary file")
 }
 
 func TestOutputFormatter_FormatAll_CreatesDirectory(t *testing.T) {
@@ -165,12 +147,9 @@ func TestOutputFormatter_FormatAll_CreatesDirectory(t *testing.T) {
 	stats := domain.NewUserStatistics(user)
 
 	err := formatter.FormatAll(stats)
-	if err != nil {
-		t.Fatalf("FormatAll() error = %v", err)
-	}
+	require.NoError(t, err, "FormatAll() should not return error")
 
 	// ディレクトリが作成されていることを確認
-	if _, err := os.Stat(newDir); os.IsNotExist(err) {
-		t.Error("FormatAll() did not create output directory")
-	}
+	_, err = os.Stat(newDir)
+	assert.NoError(t, err, "FormatAll() should create output directory")
 }
