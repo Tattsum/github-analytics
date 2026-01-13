@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+output/
+*.out
+*.html
+
+# Lock files
+package-lock.json
+yarn.lock
+
+# Generated files
+*.pb.go
+*.gen.go
+
+# Git
+.git/
+
+# Coverage
+coverage/

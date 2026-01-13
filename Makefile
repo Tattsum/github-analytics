@@ -53,6 +53,26 @@ lint-markdown: ## markdownlintを実行
 		exit 1; \
 	fi
 
+lint-json: ## JSONファイルのリントを実行
+	@echo "Running JSON linter..."
+	@if [ -f node_modules/.bin/prettier ]; then \
+		npm run lint:json; \
+	else \
+		echo "prettier not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
+
+lint-yaml: ## YAMLファイルのリントを実行
+	@echo "Running YAML linter..."
+	@if [ -f node_modules/.bin/prettier ]; then \
+		npm run lint:yaml; \
+	else \
+		echo "prettier not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
+
+lint-json-yaml: lint-json lint-yaml ## JSONとYAMLファイルのリントを実行
+
 lint-markdown-fix: ## markdownlintを実行し、自動修正可能な問題を修正
 	@echo "Running markdownlint with auto-fix..."
 	@if command -v markdownlint-cli2-fix >/dev/null 2>&1; then \
@@ -64,6 +84,26 @@ lint-markdown-fix: ## markdownlintを実行し、自動修正可能な問題を�
 		exit 1; \
 	fi
 
+format-json: ## JSONファイルをフォーマット
+	@echo "Formatting JSON files..."
+	@if [ -f node_modules/.bin/prettier ]; then \
+		npm run format:json; \
+	else \
+		echo "prettier not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
+
+format-yaml: ## YAMLファイルをフォーマット
+	@echo "Formatting YAML files..."
+	@if [ -f node_modules/.bin/prettier ]; then \
+		npm run format:yaml; \
+	else \
+		echo "prettier not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
+
+format-json-yaml: format-json format-yaml ## JSONとYAMLファイルをフォーマット
+
 fmt: ## コードをフォーマット
 	@echo "Formatting code..."
 	@go fmt ./...
@@ -71,6 +111,8 @@ fmt: ## コードをフォーマット
 	@golangci-lint run --fix || true
 	@echo "Formatting Markdown files..."
 	@$(MAKE) lint-markdown-fix || echo "markdownlint-fix failed or not available"
+	@echo "Formatting JSON and YAML files..."
+	@$(MAKE) format-json-yaml || echo "JSON/YAML formatting failed or not available"
 
 clean: ## ビルド成果物とカバレッジファイルを削除
 	@echo "Cleaning..."
@@ -83,10 +125,10 @@ install-tools: ## 開発ツールをインストール
 	@echo "Installing development tools..."
 	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	@if command -v npm >/dev/null 2>&1; then \
-		echo "Installing markdownlint-cli2..."; \
-		npm install --save-dev markdownlint-cli2@latest || echo "npm not found, skipping markdownlint installation"; \
+		echo "Installing Node.js tools (markdownlint-cli2, prettier)..."; \
+		npm install || echo "npm install failed"; \
 	else \
-		echo "npm not found. Please install Node.js to use markdownlint."; \
+		echo "npm not found. Please install Node.js to use markdownlint and prettier."; \
 	fi
 	@echo "Tools installed"
 
@@ -107,7 +149,7 @@ vet: ## go vetを実行
 	@echo "Running go vet..."
 	@go vet ./...
 
-check: fmt lint lint-markdown vet test ## フォーマット、リント、markdownlint、vet、テストをすべて実行
+check: fmt lint lint-markdown lint-json-yaml vet test ## フォーマット、リント、markdownlint、JSON/YAMLリント、vet、テストをすべて実行
 
 ci: install-tools check test-coverage ## CI用: ツールインストール、チェック、テスト、カバレッジ
 

@@ -4,10 +4,17 @@
   "description": "GitHub Analytics - GitHub活動分析ツール",
   "scripts": {
     "lint:markdown": "markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**'",
-    "lint:markdown:fix": "markdownlint-cli2-fix '**/*.md' '!node_modules/**' '!vendor/**' '!output/**'"
+    "lint:markdown:fix": "markdownlint-cli2-fix '**/*.md' '!node_modules/**' '!vendor/**' '!output/**'",
+    "lint:json": "prettier --check '**/*.json' '!node_modules/**' '!vendor/**' '!output/**' '!package-lock.json'",
+    "lint:yaml": "prettier --check '**/*.{yaml,yml}' '!node_modules/**' '!vendor/**' '!output/**'",
+    "lint:json-yaml": "npm run lint:json && npm run lint:yaml",
+    "format:json": "prettier --write '**/*.json' '!node_modules/**' '!vendor/**' '!output/**' '!package-lock.json'",
+    "format:yaml": "prettier --write '**/*.{yaml,yml}' '!node_modules/**' '!vendor/**' '!output/**'",
+    "format:json-yaml": "npm run format:json && npm run format:yaml"
   },
   "devDependencies": {
-    "markdownlint-cli2": "^0.14.0"
+    "markdownlint-cli2": "^0.14.0",
+    "prettier": "^3.4.2"
   },
   "engines": {
     "node": ">=18.0.0"
