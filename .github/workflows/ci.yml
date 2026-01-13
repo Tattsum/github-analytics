@@ -158,10 +158,33 @@ jobs:
           path: github-analytics
           retention-days: 7
 
+  lint-github-actions:
+    name: Lint GitHub Actions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: go.sum
+
+      - name: Install actionlint
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Run actionlint
+        run: |
+          actionlint --version
+          actionlint
+
   check:
     name: Full Check
     runs-on: ubuntu-latest
-    needs: [test, lint, lint-markdown, lint-json-yaml, build]
+    needs: [test, lint, lint-markdown, lint-json-yaml, lint-github-actions, build]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -209,6 +232,11 @@ jobs:
             echo "prettier not found. Skipping JSON/YAML lint."
             exit 1
           fi
+
+      - name: Run actionlint
+        run: |
+          actionlint --version
+          actionlint
 
       - name: Run full check
         run: |

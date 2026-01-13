@@ -109,8 +109,10 @@
 - **カバレッジ**: `make test-coverage`
 - **リント**: `make lint` (Goコード)
 - **Markdownリント**: `make lint-markdown` (Markdownファイル)
-- **フォーマット**: `make fmt` (Goコード + Markdown)
-- **全チェック**: `make check` (フォーマット、リント、markdownlint、vet、テスト)
+- **JSON/YAMLリント**: `make lint-json-yaml` (JSON/YAMLファイル)
+- **GitHub Actionsリント**: `make lint-github-actions` (GitHub Actionsワークフロー)
+- **フォーマット**: `make fmt` (Goコード + Markdown + JSON/YAML)
+- **全チェック**: `make check` (フォーマット、リント、markdownlint、JSON/YAMLリント、GitHub Actionsリント、vet、テスト)
 
 ## Markdown品質管理
 

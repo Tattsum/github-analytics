@@ -73,6 +73,17 @@ lint-yaml: ## YAMLファイルのリントを実行
 
 lint-json-yaml: lint-json lint-yaml ## JSONとYAMLファイルのリントを実行
 
+lint-github-actions: ## GitHub Actionsワークフローのリントを実行
+	@echo "Running actionlint..."
+	@if command -v actionlint >/dev/null 2>&1; then \
+		actionlint; \
+	elif [ -f $(go env GOPATH)/bin/actionlint ]; then \
+		$(go env GOPATH)/bin/actionlint; \
+	else \
+		echo "actionlint not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
+
 lint-markdown-fix: ## markdownlintを実行し、自動修正可能な問題を修正
 	@echo "Running markdownlint with auto-fix..."
 	@if command -v markdownlint-cli2-fix >/dev/null 2>&1; then \
@@ -124,6 +135,7 @@ clean: ## ビルド成果物とカバレッジファイルを削除
 install-tools: ## 開発ツールをインストール
 	@echo "Installing development tools..."
 	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	@go install github.com/rhysd/actionlint/cmd/actionlint@latest
 	@if command -v npm >/dev/null 2>&1; then \
 		echo "Installing Node.js tools (markdownlint-cli2, prettier)..."; \
 		npm install || echo "npm install failed"; \
@@ -149,7 +161,7 @@ vet: ## go vetを実行
 	@echo "Running go vet..."
 	@go vet ./...
 
-check: fmt lint lint-markdown lint-json-yaml vet test ## フォーマット、リント、markdownlint、JSON/YAMLリント、vet、テストをすべて実行
+check: fmt lint lint-markdown lint-json-yaml lint-github-actions vet test ## フォーマット、リント、markdownlint、JSON/YAMLリント、GitHub Actionsリント、vet、テストをすべて実行
 
 ci: install-tools check test-coverage ## CI用: ツールインストール、チェック、テスト、カバレッジ
 

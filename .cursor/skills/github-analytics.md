@@ -134,8 +134,10 @@ GitHub Analyticsは、ソフトウェアエンジニアのGitHub活動を定量�
 - **カバレッジ**: `make test-coverage`
 - **リント**: `make lint` (Goコード)
 - **Markdownリント**: `make lint-markdown` (Markdownファイル)
-- **フォーマット**: `make fmt` (Goコード + Markdown)
-- **全チェック**: `make check` (フォーマット、リント、markdownlint、vet、テスト)
+- **JSON/YAMLリント**: `make lint-json-yaml` (JSON/YAMLファイル)
+- **GitHub Actionsリント**: `make lint-github-actions` (GitHub Actionsワークフロー)
+- **フォーマット**: `make fmt` (Goコード + Markdown + JSON/YAML)
+- **全チェック**: `make check` (フォーマット、リント、markdownlint、JSON/YAMLリント、GitHub Actionsリント、vet、テスト)
 
 ## Markdown品質管理
 
@@ -144,6 +146,21 @@ GitHub Analyticsは、ソフトウェアエンジニアのGitHub活動を定量�
 - **自動修正**: `make lint-markdown-fix`で自動修正可能な問題を修正
 - **必須チェック**: `make check`と`make ci`で自動的に実行される
 - **Markdownファイル作成時**: 必ず`make lint-markdown`で検証する
+
+## JSON/YAML品質管理
+
+- **prettier**: すべてのJSON/YAMLファイルは`prettier`で検証される
+- **設定ファイル**: `.prettierrc.json`でルールを定義
+- **自動修正**: `make format-json-yaml`で自動修正可能な問題を修正
+- **必須チェック**: `make check`と`make ci`で自動的に実行される
+- **JSON/YAMLファイル作成時**: 必ず`make lint-json-yaml`で検証する
+
+## GitHub Actions品質管理
+
+- **actionlint**: すべてのGitHub Actionsワークフローファイル（`.github/workflows/*.yml`）は`actionlint`で検証される
+- **自動検証**: `make lint-github-actions`で実行する
+- **必須チェック**: `make check`と`make ci`で自動的に実行される
+- **ワークフローファイル作成・変更時**: 必ず`make lint-github-actions`で検証する
 
 ## 実装時の注意点
 
