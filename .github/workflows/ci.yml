@@ -58,11 +58,10 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
+          args: --timeout=5m
 
       - name: Run golangci-lint
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          make lint
+        run: make lint
 
   lint-markdown:
     name: Lint Markdown
@@ -82,12 +81,12 @@ jobs:
           if [ -f package-lock.json ]; then
             npm ci
           else
-            npm install
+            npm install --save-dev markdownlint-cli2@latest
           fi
 
       - name: Run markdownlint
         run: |
-          npx markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
+          npx --yes markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
 
   build:
     name: Build
@@ -144,8 +143,7 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
+          args: --timeout=5m
 
       - name: Run full check
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          make check
+        run: make check

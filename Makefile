@@ -33,8 +33,6 @@ lint: ## golangci-lintを実行
 	@echo "Running golangci-lint..."
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run; \
-	elif [ -f $(go env GOPATH)/bin/golangci-lint ]; then \
-		$(go env GOPATH)/bin/golangci-lint run; \
 	else \
 		echo "golangci-lint not found. Run 'make install-tools' first."; \
 		exit 1; \
