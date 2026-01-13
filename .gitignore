@@ -35,6 +35,6 @@ output/
 *.json
 *.txt
 
-# Skills directories (keep structure, ignore if needed)
+# Skills directories (tracked, but ignore if needed in future)
 # .claude/skills/
 # .cursor/skills/
