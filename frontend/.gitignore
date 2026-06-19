@@ -1,0 +1,9 @@
+node_modules/
+# dist/ の中身は無視するが、.gitkeep は追跡する。
+# これにより Go 側の go:embed all:dist がフロントをビルドしていない環境
+# （CI の Go ジョブ等）でもコンパイルできる。実ビルド成果物は引き続き無視される。
+dist/*
+!dist/.gitkeep
+*.local
+
+# graphql-codegen generated output is committed so types exist without codegen

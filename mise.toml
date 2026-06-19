@@ -1,0 +1,46 @@
+# mise toolchain configuration
+# Pins the toolchain versions used across the Go backend and the React frontend
+# so every contributor (and CI) builds against the same Go / Node / pnpm.
+[tools]
+# Go must match the version declared in go.mod.
+go = "1.26.4"
+# Node LTS for the Vite/React frontend.
+node = "lts"
+# pnpm is the package manager for the JS tooling and the frontend.
+pnpm = "latest"
+
+[tasks.lint-md]
+description = "Lint Markdown files"
+run = "pnpm run lint:markdown"
+
+[tasks.format]
+description = "Format JSON and YAML files"
+run = "pnpm run format:json-yaml"
+
+[tasks.web-install]
+description = "Install frontend dependencies"
+dir = "frontend"
+run = "pnpm install"
+
+# Web アプリ用の便利タスク。実体は Makefile に置き、mise はそれを呼び出すだけ
+# （タスク定義の二重管理を避けるため）。`mise run <task>` で実行できる。
+
+[tasks.db-up]
+description = "Start PostgreSQL via docker-compose"
+run = "make db-up"
+
+[tasks.batch]
+description = "Fetch from GitHub and write one snapshot to Postgres (needs GITHUB_TOKEN, DATABASE_URL)"
+run = "make batch"
+
+[tasks.serve]
+description = "Run the Go web server serving the latest snapshot (needs DATABASE_URL)"
+run = "make serve"
+
+[tasks.codegen]
+description = "Run all code generation (ent + gqlgen + frontend)"
+run = "make codegen"
+
+[tasks.dev]
+description = "Start the Vite dev server (run `mise run serve` in another terminal for the Go backend)"
+run = "make dev"

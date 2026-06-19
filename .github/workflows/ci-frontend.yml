@@ -1,0 +1,35 @@
+name: Frontend
+
+on:
+  workflow_call:
+
+jobs:
+  frontend:
+    name: Frontend (codegen, build, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate GraphQL types
+        run: pnpm run codegen
+
+      - name: Type-check and build
+        run: pnpm run build
+
+      - name: Run tests
+        run: pnpm run test

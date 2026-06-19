@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: github-analytics-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-github_analytics}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-github_analytics}
+      POSTGRES_DB: ${POSTGRES_DB:-github_analytics}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-github_analytics} -d ${POSTGRES_DB:-github_analytics}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # Web server: builds the SPA + Go server (Dockerfile) and serves both at :8080.
+  # It runs migrations on startup and reads the latest snapshot written by the
+  # batch CLI (`-mode batch`).
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: github-analytics-app
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      # Inside the compose network postgres is reachable by service name.
+      DATABASE_URL: ${DATABASE_URL:-postgres://github_analytics:github_analytics@postgres:5432/github_analytics?sslmode=disable}
+      PORT: "8080"
+      # Set ENV=development to expose the GraphQL playground at /playground.
+      ENV: ${ENV:-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

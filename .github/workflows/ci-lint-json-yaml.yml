@@ -14,31 +14,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: "22"
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
 
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install --save-dev prettier@latest
-          fi
+        run: pnpm install --frozen-lockfile
 
-      - name: Run JSON linter
-        run: |
-          if [ -f node_modules/.bin/prettier ]; then
-            npm run lint:json
-          else
-            echo "prettier not found. Skipping JSON lint."
-            exit 1
-          fi
-
-      - name: Run YAML linter
-        run: |
-          if [ -f node_modules/.bin/prettier ]; then
-            npm run lint:yaml
-          else
-            echo "prettier not found. Skipping YAML lint."
-            exit 1
-          fi
+      - name: Run JSON and YAML linters
+        run: pnpm run lint:json-yaml

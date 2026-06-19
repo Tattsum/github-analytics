@@ -1,0 +1,36 @@
+# gqlgen configuration for the GitHub team analytics GraphQL API.
+# See https://gqlgen.com/config/ for the full reference.
+
+schema:
+  - graph/*.graphqls
+
+# Generated server-side code (schema-aware execution layer).
+exec:
+  filename: graph/generated.go
+  package: graph
+
+# Generated GraphQL model structs. Kept in their own package so the resolver
+# package stays small and Phase 1 can map domain types onto these models.
+model:
+  filename: graph/model/models_gen.go
+  package: model
+
+# Resolver stubs. Phase 1 implements these; for now they panic("not implemented").
+resolver:
+  layout: follow-schema
+  dir: graph
+  package: graph
+  filename_template: "{name}.resolvers.go"
+
+omit_slice_element_pointers: false
+
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+      - github.com/99designs/gqlgen/graphql.Int
+  Int:
+    model:
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32

@@ -14,36 +14,30 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.26.4"
           cache-dependency-path: go.sum
 
-      - name: Check Go formatting
+      - name: Install golangci-lint v2
         run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "Code is not formatted. Run 'go fmt ./...' to fix."
-            gofmt -d .
-            exit 1
-          fi
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Check Go formatting (gofumpt via golangci-lint)
+        run: |
+          golangci-lint --version
+          # gofumpt 未整形があれば diff を表示して失敗する。修正は `golangci-lint fmt`。
+          golangci-lint fmt --diff
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: "22"
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
 
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install --save-dev prettier@latest
-          fi
+        run: pnpm install --frozen-lockfile
 
       - name: Check JSON/YAML formatting
-        run: |
-          if [ -f node_modules/.bin/prettier ]; then
-            npm run lint:json-yaml
-          else
-            echo "prettier not found. Skipping JSON/YAML format check."
-            exit 1
-          fi
+        run: pnpm run lint:json-yaml

@@ -71,7 +71,7 @@ func (c *GitHubClient) WaitForRateLimit(ctx context.Context) error {
 }
 
 // Query はGraphQLクエリを実行します（rate limit対応）.
-func (c *GitHubClient) Query(ctx context.Context, q interface{}, variables map[string]interface{}) error {
+func (c *GitHubClient) Query(ctx context.Context, q any, variables map[string]any) error {
 	if err := c.WaitForRateLimit(ctx); err != nil {
 		return fmt.Errorf("rate limit wait failed: %w", err)
 	}

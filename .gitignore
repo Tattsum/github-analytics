@@ -4,7 +4,11 @@
 *.dll
 *.so
 *.dylib
-github-analytics
+# CLI binary built at the repo root (`go build -o github-analytics ./cmd/github-analytics`).
+# Anchored with a leading slash so it does NOT also ignore the cmd/github-analytics/ source dir.
+/github-analytics
+# Server binary built from ./cmd/server (e.g. `go build ./cmd/server`).
+/server
 
 # Test binary
 *.test
@@ -21,8 +25,9 @@ go.work
 
 # Node.js
 node_modules/
-# package-lock.json はバージョン管理に含める（依存関係の再現性のため）
+# pnpm-lock.yaml はバージョン管理に含める（依存関係の再現性のため）
 yarn.lock
+package-lock.json
 
 # Environment variables
 .env
@@ -32,8 +37,6 @@ yarn.lock
 # Output files
 output/
 *.csv
-# *.json は package-lock.json を除外するため、個別に指定
-# package-lock.json はバージョン管理に含める（依存関係の再現性のため）
 *.txt
 
 # Skills directories (tracked, but ignore if needed in future)

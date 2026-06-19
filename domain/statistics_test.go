@@ -31,7 +31,6 @@ func TestNewYearlyStatistics(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -51,6 +50,7 @@ func TestNewUserStatistics(t *testing.T) {
 	assert.Equal(t, 0, got.TotalCommits, "TotalCommits should be 0")
 	assert.NotNil(t, got.YearlyStats, "YearlyStats should not be nil")
 	assert.NotNil(t, got.TopRepositories, "TopRepositories should not be nil")
+	assert.NotNil(t, got.AllRepositories, "AllRepositories should not be nil")
 }
 
 func TestUserStatistics_CalculatePRToReviewRatio(t *testing.T) {
@@ -89,7 +89,6 @@ func TestUserStatistics_CalculatePRToReviewRatio(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 

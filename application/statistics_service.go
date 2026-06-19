@@ -11,8 +11,7 @@ import (
 )
 
 // StatisticsService は統計情報を計算するサービスです.
-type StatisticsService struct {
-}
+type StatisticsService struct{}
 
 // NewStatisticsService は新しいStatisticsServiceを作成します.
 func NewStatisticsService() *StatisticsService {
@@ -194,8 +193,7 @@ func (s *StatisticsService) calculateYearlyStatistics(
 	allActivities []*domain.Activity,
 	data *infrastructure.UserActivityData,
 ) {
-	yearlyCommits, yearlyPRCreated, yearlyPRMerged, yearlyIssues, yearlyReviews, yearlyAdditions, yearlyDeletions :=
-		s.aggregateYearlyData(data, allActivities)
+	yearlyCommits, yearlyPRCreated, yearlyPRMerged, yearlyIssues, yearlyReviews, yearlyAdditions, yearlyDeletions := s.aggregateYearlyData(data, allActivities)
 
 	years := s.collectAllYears(yearlyCommits, yearlyPRCreated, yearlyIssues, yearlyReviews)
 
@@ -243,8 +241,8 @@ func (s *StatisticsService) aggregateRepositoryActivities(allActivities []*domai
 	return repoMap
 }
 
-// selectTopRepositories はTOP3リポジトリを選択します.
-func (s *StatisticsService) selectTopRepositories(repoMap map[string]*domain.RepositoryActivity) []*domain.RepositoryActivity {
+// sortRepositoriesByCommit はリポジトリをコミット数の多い順にソートして返します.
+func (s *StatisticsService) sortRepositoriesByCommit(repoMap map[string]*domain.RepositoryActivity) []*domain.RepositoryActivity {
 	repos := make([]*domain.RepositoryActivity, 0, len(repoMap))
 	for _, repo := range repoMap {
 		repos = append(repos, repo)
@@ -254,6 +252,12 @@ func (s *StatisticsService) selectTopRepositories(repoMap map[string]*domain.Rep
 		return repos[i].CommitCount > repos[j].CommitCount
 	})
 
+	return repos
+}
+
+// selectTopRepositories はコミット数上位のリポジトリ(TOP3)を選択します.
+// 引数のreposはコミット数降順にソート済みであることを前提とします.
+func (s *StatisticsService) selectTopRepositories(repos []*domain.RepositoryActivity) []*domain.RepositoryActivity {
 	const topRepoLimit = 3
 	if len(repos) > topRepoLimit {
 		return repos[:topRepoLimit]
@@ -291,7 +295,8 @@ func (s *StatisticsService) calculateRepositoryStatistics(
 	allActivities []*domain.Activity,
 ) {
 	repoMap := s.aggregateRepositoryActivities(allActivities)
-	stats.TopRepositories = s.selectTopRepositories(repoMap)
+	stats.AllRepositories = s.sortRepositoriesByCommit(repoMap)
+	stats.TopRepositories = s.selectTopRepositories(stats.AllRepositories)
 	stats.LongTermRepositories = s.findLongTermRepositories(stats.TopRepositories)
 }
 

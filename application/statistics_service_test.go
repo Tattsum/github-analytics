@@ -76,7 +76,6 @@ func TestStatisticsService_CalculateStatistics(t *testing.T) {
 	tests := createTestCases()
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -230,4 +229,51 @@ func TestStatisticsService_CalculateStatistics_TopRepositories(t *testing.T) {
 			prevCount = stats.TopRepositories[i].CommitCount
 		}
 	}
+}
+
+func TestStatisticsService_CalculateStatistics_AllRepositories(t *testing.T) {
+	t.Parallel()
+
+	// 5リポジトリ分のコミット（コミット数: repo1=4, repo2=3, repo3=2, repo4=1, repo5=1）.
+	commits := []*domain.Activity{
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo1", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo1", time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo1", time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo1", time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo2", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo2", time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo2", time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo3", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo3", time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo4", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+		domain.NewActivity(domain.ActivityTypeCommit, "owner/repo5", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), 10, 5),
+	}
+
+	service := NewStatisticsService()
+	data := &infrastructure.UserActivityData{
+		User:    domain.NewUser("testuser", "Test User", "2020-01-01T00:00:00Z"),
+		Commits: commits,
+		PRs:     []*domain.Activity{},
+		Issues:  []*domain.Activity{},
+		Reviews: []*domain.Activity{},
+	}
+
+	stats, err := service.CalculateStatistics(data)
+	require.NoError(t, err, "CalculateStatistics() should not return error")
+
+	// AllRepositoriesは全5リポジトリを保持する.
+	assert.Equal(t, 5, len(stats.AllRepositories), "AllRepositories should retain all repositories")
+
+	// TopRepositoriesは既存どおり上位3件に絞られる.
+	assert.Equal(t, 3, len(stats.TopRepositories), "TopRepositories should remain limited to 3")
+
+	// AllRepositoriesはコミット数降順にソートされている.
+	for i := 1; i < len(stats.AllRepositories); i++ {
+		assert.LessOrEqual(t, stats.AllRepositories[i].CommitCount, stats.AllRepositories[i-1].CommitCount,
+			"AllRepositories should be sorted by commit count (descending)")
+	}
+
+	// 先頭はコミット数最多のrepo1（4コミット）.
+	assert.Equal(t, "owner/repo1", stats.AllRepositories[0].Repository, "first entry should be the most-active repository")
+	assert.Equal(t, 4, stats.AllRepositories[0].CommitCount, "repo1 should have 4 commits")
 }

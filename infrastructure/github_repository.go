@@ -38,8 +38,8 @@ func (r *GitHubRepository) FetchUserInfo(ctx context.Context, username string) (
 		} `graphql:"user(login: $login)"`
 	}
 
-	variables := map[string]interface{}{
-		"login": githubv4.String(username),
+	variables := map[string]any{
+		gqlVarLogin: githubv4.String(username),
 	}
 
 	if err := r.client.Query(ctx, &query, variables); err != nil {
@@ -122,7 +122,7 @@ func (r *GitHubRepository) FetchCommits(ctx context.Context, username string, in
 		}(repo)
 	}
 
-	for i := 0; i < len(repos); i++ {
+	for range repos {
 		result := <-results
 		if result.err != nil {
 			// エラーはログに記録するが、他のリポジトリの処理は続行
@@ -158,10 +158,10 @@ func (r *GitHubRepository) fetchUserRepositories(ctx context.Context, username s
 	after := (*githubv4.String)(nil)
 
 	for {
-		variables := map[string]interface{}{
-			"login": githubv4.String(username),
-			"first": githubv4.Int(first),
-			"after": after,
+		variables := map[string]any{
+			gqlVarLogin: githubv4.String(username),
+			gqlVarFirst: githubv4.Int(first),
+			gqlVarAfter: after,
 		}
 
 		if err := r.client.Query(ctx, &query, variables); err != nil {

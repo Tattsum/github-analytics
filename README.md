@@ -1,226 +1,220 @@
 # GitHub Analytics
 
-ソフトウェアエンジニアのGitHub活動を定量的に分析し、送別会用の「数字による軌跡」を生成するツールです。
+GitHubのチーム活動を定量的に分析し、Web上で可視化するツールです（Findy Teams 風のチーム分析）。
+バッチがGitHubからデータを収集して**スナップショット**としてPostgresに蓄積し、GraphQL API + React SPA が
+最新スナップショットを「チーム概要 / メンバー横断ランキング・比較 / リポジトリ軸」の3つの切り口で表示します。
 
 ## 機能
 
-- **基本活動量の集計**
-  - コミット数（年別・累計）
-  - Pull Request作成数・マージ数
-  - Issue作成数
-  - Reviewコメント数（PRレビュー）
+- **チーム概要（Team Summary）**: チーム全体の合計・集計値
+- **メンバー横断のランキング / 比較**: メンバー間で比較可能なスカラー指標（並び替え・順位付け・比較は**フロントエンドで計算**）
+- **メンバー個別のドリルダウン**: 年次推移、関与リポジトリ TOP など
+- **リポジトリ軸の横断集計**: 全リポジトリ（TOP3 に限定しない）ごとの集計とコントリビュータ内訳
 
-- **技術的インパクトの分析**
-  - 変更行数（additions / deletions）
-  - 最もコミット数の多いリポジトリ TOP3
-  - 長期間関与しているリポジトリ（最初と最後の活動日時）
+### 指標（v1）
 
-- **継続性・キャリアの変遷**
-  - GitHub活動開始年
-  - 年ごとの活動ピーク
-  - ロール変化を想起させる指標（PR作成 → Review比率の変化）
+メンバー軸・リポジトリ軸の双方で次を扱います。
 
-## 出力形式
+- コミット数
+- Pull Request 作成数 / マージ数
+- Issue 作成数
+- Review 数（PRレビュー）
+- 変更行数（additions / deletions、**PR由来のみ**。コミット単位の行数はAPIから取得できません）
+- PR / Review 比率
 
-各ユーザーについて、以下の形式で出力されます：
+> **v2 の予定（未実装）**: レビュー時間（review time）の指標は PR の timeline 取得が必要なため、
+> 意図的に v1 では実装していません。
 
-1. **JSON形式** (`{username}_statistics.json`)
-   - 機械可読な形式で全データを出力
+## アーキテクチャ
 
-2. **CSV形式** (`{username}_statistics.csv`)
-   - スプレッドシートで分析可能な形式
+Clean Architecture を維持しています。ドメイン層は純粋（インフラ非依存）で、ent / DB コードは
+`infrastructure/` 配下にのみ存在します。`domain` / `application` はリポジトリ・サービスの
+**インターフェース**にのみ依存し、ent を直接参照しません。
 
-3. **テキスト要約** (`{username}_summary.txt`)
-   - 「この人を数字で表すと」
-   - 「エンジニアとしての特徴」
-   - 「役割の変化が読み取れるポイント」
+```text
+github-analytics/
+├── cmd/
+│   ├── github-analytics/      # CLI: ファイル出力モード + バッチモード（Postgresへスナップショット保存）
+│   └── server/                # Webサーバ: GraphQL API + 埋め込みSPA配信
+├── domain/                    # ドメインモデル（純粋。インフラ非依存）
+├── application/               # ユースケース・統計計算サービス、Snapshot 型
+├── infrastructure/            # GitHub API クライアント / フェッチャー
+│   └── ent/                   # ent ORM（生成コード + schema）。DBアクセスはここに限定
+│       └── snapshotdb/        # スナップショットの読み書き（SnapshotWriter / SnapshotReader）
+├── presentation/              # ファイル出力フォーマッター（CLI file モード用）
+├── graph/                     # gqlgen: GraphQLスキーマ（*.graphqls）・生成コード・リゾルバ
+├── frontend/                  # React + Vite SPA（urql + graphql-codegen + Recharts）
+├── docker-compose.yml         # Postgres + Web アプリ
+├── Dockerfile                 # SPAビルド → Goサーバへ frontend/dist を埋め込み
+├── gqlgen.yml                 # gqlgen 設定
+├── Makefile / mise.toml       # 開発タスク
+├── go.mod / go.sum
+└── README.md
+```
 
-4. **プレゼン用短文** (`{username}_presentation.txt`)
-   - スライド1枚に使える短文（箇条書き3〜4行）
+### データの蓄積方法（スナップショット）
+
+バッチ実行 1 回 = 1 スナップショット（`captured_at`）。スナップショットごとに集計済みメトリクスを保存します
+（メンバー単位のスカラー、メンバー × 年、メンバー × リポジトリ（全リポジトリ））。Web はデフォルトで
+**最新スナップショット**を読み込みます。
+
+### ストレージ / API / フロントエンド
+
+- **ストレージ**: PostgreSQL（Docker）。ORM は ent、ドライバは pgx（stdlib アダプタ）
+- **API**: gqlgen による GraphQL（スキーマファースト）。主なクエリ:
+  - `members: [MemberStats!]!` — メンバー横断の比較可能スカラー（ランキング・比較用）
+  - `member(login: String!): UserStatistics` — ドリルダウン（年次推移・TOPリポジトリ等）
+  - `teamSummary: TeamSummary!` — チーム合計・集計
+  - `repositories: [RepositoryStats!]!` — リポジトリ軸の横断集計
+  - `repository(nameWithOwner: String!): RepositoryStats`
+  - 並び替え / 順位付け / 比較は GraphQL ではなく**フロントエンドで計算**します。
+- **フロントエンド**: React + Vite の SPA。パッケージマネージャは pnpm。GraphQL クライアントは urql、
+  型は graphql-codegen（client preset）、チャートは Recharts。本番は Go バイナリが `frontend/dist` を
+  埋め込み**同一オリジン**で配信し、開発時は Vite が `/query` を Go サーバへプロキシします。
 
 ## セットアップ
 
 ### 前提条件
 
-- Go 1.25以上
+- [mise](https://mise.jdx.dev/) でツールチェーンを管理（Go 1.26.4 / Node LTS / pnpm）
+- Docker / Docker Compose（PostgreSQL 用）
 - GitHub Personal Access Token
 
-### インストール
-
 ```bash
-# 依存関係のインストール
+# ツールチェーン（Go / Node / pnpm）をインストール
+mise install
+
+# Goの依存関係を取得
 go mod download
 
-# ビルド
-go build -o github-analytics ./cmd/github-analytics
+# フロントエンドの依存関係を取得
+make web-install   # = cd frontend && pnpm install
 ```
 
-### GitHub Personal Access Tokenの取得
+### 環境変数
 
-1. GitHubにログイン
-2. Settings → Developer settings → Personal access tokens → Tokens (classic)
-3. "Generate new token (classic)"をクリック
-4. 以下のスコープを選択：
-   - `public_repo` (公開リポジトリ用)
-   - `repo` (privateリポジトリも対象にする場合)
-   - `read:org` (組織のメンバーを取得する場合)
-5. トークンを生成し、安全な場所に保存
+`.env.example` を `.env` にコピーして値を埋めてください（docker-compose とアプリが読み込みます）。
 
-## 使用方法
-
-### 基本的な使用方法
+| 変数 | 用途 |
+| --- | --- |
+| `GITHUB_TOKEN` | バッチのフェッチに使う GitHub Personal Access Token（read系スコープ） |
+| `DATABASE_URL` | Postgres 接続文字列。compose 内では host が `postgres`、ホストからは `localhost` |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` / `POSTGRES_PORT` | compose の Postgres サービス設定 |
+| `APP_PORT` | アプリの公開ポート（compose） |
+| `PORT` | Web サーバのリッスンポート（既定 8080） |
+| `ENV` | `development` / `dev` のとき `GET /playground` を公開。本番は未公開 |
 
 ```bash
-# 環境変数にトークンを設定
-export GITHUB_TOKEN="your_token_here"
-
-# 特定のユーザーを分析
-./github-analytics -users user1,user2
-
-# または
-go run ./cmd/github-analytics -users user1,user2
+cp .env.example .env
+# .env を編集して GITHUB_TOKEN を設定
 ```
 
-### 組織のメンバーを分析する場合
+### GitHub Personal Access Token のスコープ
+
+- `public_repo`（公開リポジトリ）
+- `repo`（privateリポジトリも対象にする場合）
+- `read:org`（組織のメンバーを取得する場合）
+
+## バッチの実行（スナップショット保存）
+
+バッチは GitHub からデータを取得・集計し、1 スナップショットを Postgres に書き込みます。冪等で、起動時に
+マイグレーションを実行します。`GITHUB_TOKEN` と `DATABASE_URL` が必要です。
 
 ```bash
-export GITHUB_TOKEN="your_token_here"
-# 組織の全メンバーを分析
-./github-analytics -org myorganization
+# 1. Postgres を起動
+make db-up
+
+# 2. 環境変数を読み込み（.env を利用する場合）
+export $(grep -v '^#' .env | xargs)
+
+# 3. バッチを実行（メンバー指定）
+make batch ARGS="-users user1,user2"
+
+# 組織の全メンバーを対象にする場合
+make batch ARGS="-org myorganization"
+
+# privateリポジトリも含める場合
+make batch ARGS="-users user1,user2 -private"
 ```
 
-**注意**: 組織のメンバーを取得するには、GitHub Personal Access Tokenに`read:org`スコープが必要です。
-
-### Privateリポジトリも対象にする場合
+`make batch` は内部で `go run ./cmd/github-analytics -mode batch <ARGS>` を実行します。
+直接実行する場合は次の通りです。
 
 ```bash
-export GITHUB_TOKEN="your_token_here"
-./github-analytics -users user1,user2 -private
+GITHUB_TOKEN=... DATABASE_URL=... go run ./cmd/github-analytics -mode batch -users user1,user2
 ```
 
-### 出力先を指定する場合
+> CLI には従来の `file` モード（`output/` にJSON/CSV/テキストを出力）も残っています。
+> `-mode file`（既定）で利用でき、Postgres は不要です。
+
+## Web サーバの実行
+
+サーバは最新スナップショットを読み込み、`POST /query` で GraphQL API を、`/` で埋め込み SPA を配信します。
+`DATABASE_URL` が必要で、起動時にマイグレーションを実行します。
 
 ```bash
-./github-analytics -users user1,user2 -output ./results
+# Postgres を起動し、最低 1 回バッチでスナップショットを作成しておくこと
+make db-up
+make batch ARGS="-users user1,user2"
+
+# サーバを起動（既定 :8080）
+make serve
+
+# 開発時に GraphQL playground を使う場合
+ENV=development make serve   # GET /playground が公開される
 ```
 
-### ヘルプの表示
+### docker-compose で一括起動
+
+Postgres と Web アプリ（SPA ビルド + Go サーバ）をまとめて起動します。
 
 ```bash
-./github-analytics -help
+# .env を用意したうえで
+docker compose up -d --build
+
+# アプリは http://localhost:${APP_PORT:-8080} で配信される
+# スナップショットの作成は別途バッチ実行が必要（compose 外、またはワンショットで）
+make batch ARGS="-org myorganization"
 ```
-
-### 出力先の確認
-
-実行後、指定した出力ディレクトリ（デフォルト: `output/`）に以下のファイルが生成されます：
-
-```text
-output/
-├── user1_statistics.json
-├── user1_statistics.csv
-├── user1_summary.txt
-├── user1_presentation.txt
-├── user2_statistics.json
-├── user2_statistics.csv
-├── user2_summary.txt
-└── user2_presentation.txt
-```
-
-## 注意事項
-
-### API制限について
-
-- GitHub GraphQL APIのrate limitは5000リクエスト/時です
-- 本ツールはrate limitを考慮して実装されており、自動的に待機します
-- 大量のデータがある場合は、処理に時間がかかる場合があります（最大30分のタイムアウト）
-
-### 取得できないデータについて
-
-以下のデータは、GitHub APIの制限により取得できない場合があります：
-
-- 組織のprivateリポジトリ（適切な権限がない場合）
-- 削除されたリポジトリのデータ
-- フォーク元のリポジトリでの活動（一部）
-
-### 並列処理について
-
-- 複数ユーザーのデータは並列で取得されます
-- 各ユーザー内でのリポジトリ取得も並列で実行されます（最大5並列）
-- rate limitを考慮して実装されているため、安全に実行できます
-
-### コマンドライン引数
-
-- `-users`: 分析対象のGitHubユーザー名（カンマ区切り、例: `user1,user2`）
-- `-org`: 分析対象のGitHub組織名（指定した場合、組織の全メンバーを分析）
-- `-output`: 出力ディレクトリ（デフォルト: `output`）
-- `-private`: privateリポジトリも対象にする（フラグを指定）
-- `-help`: ヘルプを表示
-
-**注意**: `-users`と`-org`のどちらか一方を指定する必要があります。
-
-## プロジェクト構造
-
-```text
-github-analytics/
-├── cmd/
-│   └── github-analytics/
-│       └── main.go              # メインアプリケーション
-├── domain/                      # ドメインモデル
-│   ├── user.go
-│   ├── activity.go
-│   └── statistics.go
-├── infrastructure/              # インフラストラクチャ層
-│   ├── github_client.go         # GitHub APIクライアント
-│   ├── github_repository.go     # データ取得リポジトリ
-│   └── github_data_fetcher.go  # データフェッチャー
-├── application/                 # アプリケーション層
-│   └── statistics_service.go   # 統計計算サービス
-├── presentation/                # プレゼンテーション層
-│   └── output_formatter.go     # 出力フォーマッター
-├── .claude/
-│   └── skills/                  # Claude Skills（AIエージェント用ルール）
-│       └── github-analytics.md
-├── .cursor/
-│   └── skills/                  # Cursor Skills（AIエージェント用ルール）
-│       └── github-analytics.md
-├── .cursorrules                 # Cursor用プロジェクトルール
-├── go.mod
-├── go.sum
-└── README.md
-```
-
-## AIエージェント対応
-
-このプロジェクトは、Cursor SkillsとClaude Skillsに対応しています：
-
-- **`.cursorrules`**: Cursorエディタ用のプロジェクトルール
-- **`.cursor/skills/`**: Cursor Skills形式のスキル定義
-- **`.claude/skills/`**: Claude Skills形式のスキル定義
-
-これらのスキルファイルにより、AIエージェントがプロジェクトのアーキテクチャ原則、コーディング規約、ベストプラクティスを理解し、適切なコード生成や提案を行います。
-
-### Cursorでの使用方法
-
-CursorのNightlyリリースでは、「Import Agent Skills」設定を有効にすることで、`.claude/skills/`や`.cursor/skills/`ディレクトリ内のスキルを自動的に読み込みます。
-
-### Claudeでの使用方法
-
-Claude CodeやClaude Desktopでは、`.claude/skills/`ディレクトリ内のスキルが自動的に読み込まれ、プロジェクト固有のガイドラインに従った支援が行われます。
 
 ## 開発
 
-### 開発ツールのインストール
+ツールチェーンは mise（`mise.toml`）、フロントエンドの依存は pnpm で管理します。
+開発時は Vite と Go サーバを別々のターミナルで起動し、Vite が `/query` を Go サーバ（:8080）へプロキシします。
 
 ```bash
-make install-tools
+# ターミナル1: Go サーバ（GraphQL API）
+make serve
+
+# ターミナル2: Vite 開発サーバ（http://localhost:5173 など）
+make dev
 ```
 
-これにより、以下のツールがインストールされます：
+`mise run <task>` でも同等のタスクを実行できます（`batch` / `serve` / `codegen` / `dev` / `db-up`）。
 
-- golangci-lint v2 (Goコードのリント)
-- markdownlint-cli2 (Markdownファイルのリント)
+### コード生成（ent + gqlgen + フロントエンド）
 
-**注意**: markdownlint-cli2のインストールにはNode.js (v18以上)が必要です。
+スキーマやリゾルバ、GraphQL クエリを変更したら再生成します。
+
+```bash
+# すべて再生成（ent ORM → gqlgen サーバコード → フロントエンドの型）
+make codegen
+
+# 個別に実行する場合
+make codegen-ent       # infrastructure/ent の ORM コード（go generate）
+make codegen-gql       # graph/ の gqlgen サーバコード
+make codegen-frontend  # frontend/src/gql の型付きGraphQLクライアント
+```
+
+### ビルド
+
+```bash
+# CLI（バッチ）をビルド
+make build
+
+# Web サーバをビルド（フロントエンドをビルドして frontend/dist を埋め込む）
+make build-server
+```
 
 ### テストの実行
 
@@ -233,38 +227,37 @@ make test-coverage
 
 # 短いテストのみ実行（統合テストをスキップ）
 make test-short
+
+# フロントエンドのテスト
+cd frontend && pnpm test
 ```
 
-### コードフォーマット
+### 開発ツールのインストール
 
 ```bash
-# go fmt + golangci-lint fmt + 自動修正
+make install-tools
+```
+
+golangci-lint v2 / actionlint / markdownlint-cli2 / prettier などをインストールします
+（markdownlint-cli2 には Node.js が必要です）。
+
+### コードフォーマット / リント
+
+```bash
+# go fmt + golangci-lint fmt + 各種自動修正
 make fmt
-```
 
-### リント
-
-```bash
-# Goコードのリントを実行
+# Goコードのリント（自動修正は make lint-fix）
 make lint
 
-# Goコードのリントを実行し、自動修正可能な問題を修正
-make lint-fix
-
-# Markdownファイルのリントを実行
+# Markdownのリント（自動修正は make lint-markdown-fix）
 make lint-markdown
-
-# Markdownファイルのリントを実行し、自動修正可能な問題を修正
-make lint-markdown-fix
 ```
 
 ### その他のコマンド
 
 ```bash
-# ビルド
-make build
-
-# すべてのチェック（フォーマット、リント、markdownlint、vet、テスト）
+# すべてのチェック（フォーマット、リント、markdownlint、JSON/YAMLリント、GitHub Actionsリント、vet、テスト）
 make check
 
 # CI用（ツールインストール、チェック、テスト、カバレッジ）
@@ -273,9 +266,40 @@ make ci
 # 依存関係の更新
 make deps
 
-# クリーンアップ
+# クリーンアップ（バイナリ・カバレッジ・frontend/dist を削除）
 make clean
+
+# Postgres を停止
+make db-down
 ```
+
+`make help` で全ターゲットの一覧を表示できます。
+
+## 注意事項
+
+### API制限について
+
+- GitHub GraphQL API の rate limit は 5000 リクエスト/時です
+- 本ツールは rate limit を考慮して実装されており、自動的に待機します
+- 大量データの場合は処理に時間がかかります（バッチは最大30分のタイムアウト）
+
+### 取得できないデータについて
+
+- 組織の private リポジトリ（適切な権限がない場合）
+- 削除されたリポジトリのデータ
+- フォーク元リポジトリでの活動（一部）
+- コミット単位の変更行数（API制限のため。行数は PR 由来のみ）
+
+## AIエージェント対応
+
+このプロジェクトは Cursor Skills と Claude Skills に対応しています。
+
+- **`.cursorrules`**: Cursor エディタ用のプロジェクトルール
+- **`.cursor/skills/`**: Cursor Skills 形式のスキル定義
+- **`.claude/skills/`**: Claude Skills 形式のスキル定義
+
+これらにより、AIエージェントがアーキテクチャ原則・コーディング規約・ベストプラクティスを理解し、
+適切なコード生成や提案を行います。
 
 ## ライセンス
 
@@ -283,55 +307,20 @@ make clean
 
 ## CI/CD
 
-このプロジェクトはGitHub Actionsを使用してCI/CDパイプラインを実行します：
+このプロジェクトは GitHub Actions を使用して CI/CD パイプラインを実行します。
 
 - **テスト**: すべてのテストを実行し、カバレッジレポートを生成
-- **リント**: GoコードとMarkdownファイルのリントを実行
+- **リント**: Go コードと Markdown ファイルのリントを実行
 - **ビルド**: アプリケーションのビルドを確認
 - **全チェック**: フォーマット、リント、テストをすべて実行
 
-ワークフローファイルは`.github/workflows/`ディレクトリにあります。
+ワークフローファイルは `.github/workflows/` ディレクトリにあります。
 
 ## 貢献
 
 プルリクエストやイシューの報告を歓迎します。
 
-### 開発フロー
-
 1. 機能ブランチを作成（`git checkout -b feature/amazing-feature`）
-2. 変更をコミット（`git commit -m 'Add amazing feature'`）
-3. ブランチにpush（`git push origin feature/amazing-feature`）
+2. 変更をコミット
+3. ブランチに push
 4. プルリクエストを作成
-
-### コミットメッセージ
-
-- 明確で簡潔なメッセージを心がける
-- 変更の理由を説明する
-- 関連するIssue番号があれば記載する
-
-### GitHubへの初回push
-
-1. GitHubでリポジトリを作成:
-   - https://github.com/new にアクセス
-   - リポジトリ名: `github-analytics`
-   - 説明: "GitHub活動を定量的に分析するツール"
-   - PublicまたはPrivateを選択
-   - README、.gitignore、ライセンスは追加しない（既に存在するため）
-
-2. リモートリポジトリを設定（既に設定済みの場合はスキップ）:
-
-   ```bash
-   git remote add origin https://github.com/Tattsum/github-analytics.git
-   # またはSSHを使用する場合
-   git remote add origin git@github.com:Tattsum/github-analytics.git
-   ```
-
-3. メインブランチにpush:
-
-   ```bash
-   git push -u origin main
-   ```
-
-4. GitHub Actionsが自動的に実行されます:
-   - テスト、リント、ビルドが自動実行されます
-   - Actionsタブで結果を確認できます
