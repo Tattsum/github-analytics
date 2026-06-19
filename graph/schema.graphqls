@@ -1,0 +1,132 @@
+# GraphQL schema for GitHub team analytics.
+#
+# The web frontend reads the LATEST snapshot by default. Ranking, sorting and
+# comparison are computed on the frontend, so the API exposes flat lists of
+# comparable, pre-aggregated metrics rather than sorted/ranked results.
+
+# MemberStats holds the cross-member comparable scalar metrics used to build
+# rankings and comparisons on the frontend.
+type MemberStats {
+  login: String!
+  name: String!
+  totalCommits: Int!
+  totalPRCreated: Int!
+  totalPRMerged: Int!
+  totalIssues: Int!
+  totalReviews: Int!
+  totalAdditions: Int!
+  totalDeletions: Int!
+  prToReviewRatio: Float!
+}
+
+# UserStatistics is the per-member drill-down view: scalar totals plus the
+# yearly trend, repository activity and role-transition timeline.
+type UserStatistics {
+  login: String!
+  name: String!
+  totalCommits: Int!
+  totalPRCreated: Int!
+  totalPRMerged: Int!
+  totalIssues: Int!
+  totalReviews: Int!
+  totalAdditions: Int!
+  totalDeletions: Int!
+  prToReviewRatio: Float!
+  firstActivityYear: Int!
+  peakActivityYear: Int!
+  peakActivityCommits: Int!
+  yearlyStats: [YearlyStatistics!]!
+  topRepositories: [RepositoryActivity!]!
+  longTermRepositories: [RepositoryActivity!]!
+  roleTransition: [RoleTransitionPoint!]!
+}
+
+# YearlyStatistics is one member's aggregated metrics for a single year.
+type YearlyStatistics {
+  year: Int!
+  commitCount: Int!
+  prCreated: Int!
+  prMerged: Int!
+  issueCount: Int!
+  reviewCount: Int!
+  totalAdditions: Int!
+  totalDeletions: Int!
+}
+
+# RepositoryActivity is one member's aggregated activity within a repository.
+type RepositoryActivity {
+  repository: String!
+  commitCount: Int!
+  prCount: Int!
+  issueCount: Int!
+  reviewCount: Int!
+  totalAdditions: Int!
+  totalDeletions: Int!
+  firstActivity: String!
+  lastActivity: String!
+}
+
+# RoleTransitionPoint captures how a member's authoring/reviewing balance
+# shifted in a given year.
+type RoleTransitionPoint {
+  year: Int!
+  prCreated: Int!
+  reviewCount: Int!
+  ratio: Float!
+  description: String!
+}
+
+# TeamSummary holds team-wide totals and aggregates for the overview page.
+type TeamSummary {
+  memberCount: Int!
+  repositoryCount: Int!
+  totalCommits: Int!
+  totalPRCreated: Int!
+  totalPRMerged: Int!
+  totalIssues: Int!
+  totalReviews: Int!
+  totalAdditions: Int!
+  totalDeletions: Int!
+}
+
+# RepositoryStats is the repository-axis cross aggregation across all members.
+type RepositoryStats {
+  nameWithOwner: String!
+  total: RepositoryTotals!
+  contributorCount: Int!
+  contributors: [RepositoryContributor!]!
+}
+
+# RepositoryTotals are the aggregated metrics for a single repository.
+type RepositoryTotals {
+  commits: Int!
+  prCreated: Int!
+  prMerged: Int!
+  issues: Int!
+  reviews: Int!
+  additions: Int!
+  deletions: Int!
+}
+
+# RepositoryContributor is one member's contribution to a single repository.
+type RepositoryContributor {
+  login: String!
+  commitCount: Int!
+  prCreated: Int!
+  reviewCount: Int!
+  additions: Int!
+  deletions: Int!
+}
+
+type Query {
+  # Cross-member comparable scalars for ranking/comparison (latest snapshot).
+  members: [MemberStats!]!
+  # Per-member drill-down: yearly trend, top repositories, role transition.
+  member(login: String!): UserStatistics
+  # Team-wide totals and aggregates.
+  teamSummary: TeamSummary!
+  # Repository-axis cross aggregation across all repositories.
+  repositories: [RepositoryStats!]!
+  # A single repository's cross aggregation.
+  repository(nameWithOwner: String!): RepositoryStats
+}
