@@ -39,7 +39,7 @@ func (r *GitHubRepository) FetchUserInfo(ctx context.Context, username string) (
 	}
 
 	variables := map[string]interface{}{
-		"login": githubv4.String(username),
+		gqlVarLogin: githubv4.String(username),
 	}
 
 	if err := r.client.Query(ctx, &query, variables); err != nil {
@@ -159,9 +159,9 @@ func (r *GitHubRepository) fetchUserRepositories(ctx context.Context, username s
 
 	for {
 		variables := map[string]interface{}{
-			"login": githubv4.String(username),
-			"first": githubv4.Int(first),
-			"after": after,
+			gqlVarLogin: githubv4.String(username),
+			gqlVarFirst: githubv4.Int(first),
+			gqlVarAfter: after,
 		}
 
 		if err := r.client.Query(ctx, &query, variables); err != nil {

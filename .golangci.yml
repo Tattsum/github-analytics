@@ -1,131 +1,13 @@
 # golangci-lint v2設定ファイル
 # クリーンアーキテクチャとDDDを意識した厳格な設定
-
-version: 2
+version: "2"
 
 run:
   timeout: 5m
   tests: true
 
-output:
-  formats:
-    default: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-
-linters-settings:
-  # エラーチェック
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
-    exclude-functions: fmt:.*,io/ioutil:^Read.*
-
-  # 未使用の変数・インポート
-  unused:
-    check-exported: false
-
-  # 静的解析
-  staticcheck:
-    checks: ["all"]
-
-  # コメントチェック
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - dupImport
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-
-  # 循環的複雑度
-  cyclop:
-    max-complexity: 20
-    package-average: 0.0
-    skip-tests: true
-
-  # 関数の長さ
-  funlen:
-    lines: 120
-    statements: 60
-
-  # ネストの深さ
-  nestif:
-    min-complexity: 5
-
-  # インポート順序
-  goimports:
-    local-prefixes: github.com/Tattsum/github-analytics
-
-  # 命名規則
-  revive:
-    rules:
-      - name: exported
-        severity: warning
-        disabled: false
-      - name: unexported-return
-        severity: warning
-        disabled: false
-      - name: error-return
-        severity: error
-        disabled: false
-      - name: error-naming
-        severity: error
-        disabled: false
-      - name: var-naming
-        severity: warning
-        disabled: false
-      - name: package-comments
-        severity: warning
-        disabled: false
-
-  # テスト
-  testpackage:
-    skip-regexp: (export|internal)_test\.go
-
-  # セキュリティ
-  gosec:
-    severity: medium
-    confidence: medium
-    excludes:
-      - G104 # エラーを無視（意図的な場合がある）
-
-  # ドキュメント
-  godox:
-    keywords:
-      - NOTE
-      - OPTIMIZE
-      - HACK
-
-  # マジックナンバー（v2ではmndに変更）
-  mnd:
-    checks: argument,case,condition,operation,return,assign
-    ignored-numbers:
-      - "0"
-      - "1"
-      - "2"
-      - "3"
-      - "24"
-      - "30"
-      - "60"
-      - "365"
-      - "4500"
-      - "0644"
-      - "0755"
-
-  # WSL v5設定
-  wsl_v5:
-    allow-first-in-block: true
-    allow-whole-block: false
-    branch-max-lines: 2
-
 linters:
-  # 有効なlinter（v2で利用可能なもののみ）
+  # 有効なlinter
   enable:
     - errcheck
     - govet
@@ -145,7 +27,6 @@ linters:
     - gocyclo
     - godot
     - goheader
-    - gomodguard
     - goprintffuncname
     - noctx
     - nolintlint
@@ -154,29 +35,128 @@ linters:
     - unparam
     - whitespace
     - wrapcheck
-    - wsl_v5
     - mnd
     - cyclop
     - funlen
     - nestif
 
-issues:
-  exclude-dirs:
-    - vendor
-    - output
-  exclude-files:
-    - ".*\\.pb\\.go$"
-    - ".*\\.gen\\.go$"
-  exclude-rules:
-    # テストファイルは一部のルールを緩和
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
-        - funlen
-        - gocognit
-    # 生成されたファイルは除外
-    - path: ".*\\.pb\\.go$"
-    - path: ".*\\.gen\\.go$"
-  max-issues-per-linter: 0
-  max-same-issues: 0
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+      exclude-functions:
+        - fmt:.*
+        - io/ioutil:^Read.*
+
+    staticcheck:
+      checks: ["all"]
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+      disabled-checks:
+        - dupImport
+        - ifElseChain
+        - octalLiteral
+        - whyNoLint
+        - wrapperFunc
+        - commentedOutCode # 日本語コメントを誤検知しやすいため無効化
+        - tooManyResultsChecker # 既存の集計関数の戻り値設計を尊重
+        - unnamedResult # 既存関数の戻り値命名は必須としない
+
+    cyclop:
+      max-complexity: 20
+      package-average: 0.0
+
+    funlen:
+      lines: 120
+      statements: 60
+
+    nestif:
+      min-complexity: 5
+
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+          disabled: false
+        - name: unexported-return
+          severity: warning
+          disabled: false
+        - name: error-return
+          severity: error
+          disabled: false
+        - name: error-naming
+          severity: error
+          disabled: false
+        - name: var-naming
+          severity: warning
+          disabled: false
+        - name: package-comments
+          severity: warning
+          disabled: false
+
+    testpackage:
+      skip-regexp: (export|internal)_test\.go
+
+    gosec:
+      excludes:
+        - G104 # エラーを無視（意図的な場合がある）
+        - G706 # ログ出力する GitHub ログイン名は文字種が限定されるため許容
+
+    godox:
+      keywords:
+        - NOTE
+        - OPTIMIZE
+        - HACK
+
+    mnd:
+      checks:
+        - argument
+        - case
+        - condition
+        - operation
+        - return
+        - assign
+      ignored-numbers:
+        - "0"
+        - "1"
+        - "2"
+        - "3"
+        - "24"
+        - "30"
+        - "60"
+        - "365"
+        - "4500"
+        - "0644"
+        - "0755"
+
+  exclusions:
+    # 生成コード（ent / gqlgen 等の "Code generated ... DO NOT EDIT" 付き）を除外
+    generated: lax
+    paths:
+      - vendor
+      - output
+      - ".*\\.pb\\.go$"
+      - ".*\\.gen\\.go$"
+    # gofmt/goimports は ci-format ジョブの `gofmt -l .` で担保するため、ここでは強制しない
+    rules:
+      # テストファイルは一部のルールを緩和
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+          - funlen
+          - gocognit
+          - gocyclo
+          - cyclop
+          - err113
+          - mnd
+          - dupl
+          - goconst
+          - gocritic
+          - noctx

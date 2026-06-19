@@ -60,7 +60,7 @@ func serveIndex(w http.ResponseWriter, dist fs.FS) {
 // trimLeadingSlash converts an HTTP path ("/assets/x.js") into an fs path
 // ("assets/x.js"). fs.FS paths must not start with a slash.
 func trimLeadingSlash(p string) string {
-	if len(p) > 0 && p[0] == '/' {
+	if p != "" && p[0] == '/' {
 		return p[1:]
 	}
 	return p

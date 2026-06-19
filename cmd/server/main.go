@@ -15,6 +15,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -39,6 +40,9 @@ const (
 	playgroundEndpoint = "/playground"
 )
 
+// errMissingDatabaseURL is returned when the required DATABASE_URL is unset.
+var errMissingDatabaseURL = errors.New("DATABASE_URL environment variable is not set")
+
 func main() {
 	if err := run(); err != nil {
 		log.Fatalf("server: %v", err)
@@ -51,12 +55,12 @@ func main() {
 func run() error {
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		return errors.New("DATABASE_URL environment variable is not set")
+		return errMissingDatabaseURL
 	}
 
 	client, err := infrastructure.OpenPostgres(databaseURL)
 	if err != nil {
-		return err
+		return fmt.Errorf("open postgres: %w", err)
 	}
 	defer func() {
 		if cerr := client.Close(); cerr != nil {
@@ -66,8 +70,9 @@ func run() error {
 
 	migrateCtx, cancel := context.WithTimeout(context.Background(), migrateTimeout)
 	defer cancel()
+
 	if err := infrastructure.Migrate(migrateCtx, client); err != nil {
-		return err
+		return fmt.Errorf("run migrations: %w", err)
 	}
 
 	reader := snapshotdb.NewSnapshotReader(client)
@@ -105,12 +110,16 @@ func serve(srv *http.Server) error {
 	defer stop()
 
 	errCh := make(chan error, 1)
+
 	go func() {
 		log.Printf("server: listening on %s", srv.Addr)
+
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
+
 			return
 		}
+
 		errCh <- nil
 	}()
 
@@ -119,9 +128,15 @@ func serve(srv *http.Server) error {
 		return err
 	case <-ctx.Done():
 		log.Println("server: shutdown signal received")
+
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
-		return srv.Shutdown(shutdownCtx)
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("graceful shutdown: %w", err)
+		}
+
+		return nil
 	}
 }
 

@@ -1,3 +1,5 @@
+// Package graph contains the gqlgen GraphQL resolvers and the mapping helpers
+// that translate application/domain values into the generated GraphQL models.
 package graph
 
 import (

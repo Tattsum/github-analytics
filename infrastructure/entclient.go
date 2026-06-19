@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Tattsum/github-analytics/infrastructure/ent"
 )
@@ -15,13 +16,22 @@ import (
 // ent.OpenPostgres so that callers depend on the infrastructure package rather
 // than reaching into the generated ent package directly.
 func OpenPostgres(dataSourceName string) (*EntClient, error) {
-	return ent.OpenPostgres(dataSourceName)
+	client, err := ent.OpenPostgres(dataSourceName)
+	if err != nil {
+		return nil, fmt.Errorf("open postgres ent client: %w", err)
+	}
+
+	return client, nil
 }
 
 // Migrate runs ent's schema auto-migration against the connected database. It
 // is idempotent and safe to call on every batch run before writing a snapshot.
 func Migrate(ctx context.Context, client *EntClient) error {
-	return ent.Migrate(ctx, client)
+	if err := ent.Migrate(ctx, client); err != nil {
+		return fmt.Errorf("run ent migrations: %w", err)
+	}
+
+	return nil
 }
 
 // EntClient is the persistence client used by the write side. It is an alias of

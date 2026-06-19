@@ -51,7 +51,7 @@ func (w *SnapshotWriter) Save(ctx context.Context, snapshot *application.Snapsho
 
 	if err := w.saveTx(ctx, tx, snapshot); err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("%w (rollback failed: %v)", err, rbErr)
+			return errors.Join(err, fmt.Errorf("rollback failed: %w", rbErr))
 		}
 
 		return err

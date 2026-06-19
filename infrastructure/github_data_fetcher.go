@@ -12,6 +12,15 @@ import (
 // contributionLookbackYears はcontributionsCollectionを遡って取得する年数です.
 const contributionLookbackYears = 10
 
+// GraphQL クエリ変数名（複数のクエリで共通利用するためまとめて定義）.
+const (
+	gqlVarLogin = "login"
+	gqlVarFrom  = "from"
+	gqlVarTo    = "to"
+	gqlVarFirst = "first"
+	gqlVarAfter = "after"
+)
+
 // contributionWindow はcontributionsCollectionの取得期間（1年以内）を表します.
 type contributionWindow struct {
 	from githubv4.DateTime
@@ -214,11 +223,11 @@ func (f *GitHubDataFetcher) fetchRepositoryCommitContributionsPage(
 
 	first := 100
 	variables := map[string]interface{}{
-		"login": githubv4.String(username),
-		"from":  from,
-		"to":    to,
-		"first": githubv4.Int(first),
-		"after": after,
+		gqlVarLogin: githubv4.String(username),
+		gqlVarFrom:  from,
+		gqlVarTo:    to,
+		gqlVarFirst: githubv4.Int(first),
+		gqlVarAfter: after,
 	}
 
 	if err := f.repo.client.Query(ctx, &query, variables); err != nil {
@@ -327,11 +336,11 @@ func (f *GitHubDataFetcher) fetchCommitsWindow(ctx context.Context, username str
 
 	// 最初のクエリでリポジトリのリストを取得
 	variables := map[string]interface{}{
-		"login": githubv4.String(username),
-		"from":  from,
-		"to":    to,
-		"first": githubv4.Int(first),
-		"after": after,
+		gqlVarLogin: githubv4.String(username),
+		gqlVarFrom:  from,
+		gqlVarTo:    to,
+		gqlVarFirst: githubv4.Int(first),
+		gqlVarAfter: after,
 	}
 
 	if err := f.repo.client.Query(ctx, &query, variables); err != nil {
@@ -427,9 +436,9 @@ func (f *GitHubDataFetcher) FetchPullRequests(ctx context.Context, username stri
 
 	for {
 		variables := map[string]interface{}{
-			"login": githubv4.String(username),
-			"first": githubv4.Int(first),
-			"after": after,
+			gqlVarLogin: githubv4.String(username),
+			gqlVarFirst: githubv4.Int(first),
+			gqlVarAfter: after,
 		}
 
 		if err := f.repo.client.Query(ctx, &query, variables); err != nil {
@@ -486,9 +495,9 @@ func (f *GitHubDataFetcher) FetchIssues(ctx context.Context, username string, _ 
 
 	for {
 		variables := map[string]interface{}{
-			"login": githubv4.String(username),
-			"first": githubv4.Int(first),
-			"after": after,
+			gqlVarLogin: githubv4.String(username),
+			gqlVarFirst: githubv4.Int(first),
+			gqlVarAfter: after,
 		}
 
 		if err := f.repo.client.Query(ctx, &query, variables); err != nil {
@@ -621,11 +630,11 @@ func (f *GitHubDataFetcher) fetchRepositoryReviewContributionsPage(
 
 	first := 100
 	variables := map[string]interface{}{
-		"login": githubv4.String(username),
-		"from":  from,
-		"to":    to,
-		"first": githubv4.Int(first),
-		"after": after,
+		gqlVarLogin: githubv4.String(username),
+		gqlVarFrom:  from,
+		gqlVarTo:    to,
+		gqlVarFirst: githubv4.Int(first),
+		gqlVarAfter: after,
 	}
 
 	if err := f.repo.client.Query(ctx, &query, variables); err != nil {
@@ -734,11 +743,11 @@ func (f *GitHubDataFetcher) fetchReviewsWindow(ctx context.Context, username str
 
 	// 最初のクエリでリポジトリのリストを取得
 	variables := map[string]interface{}{
-		"login": githubv4.String(username),
-		"from":  from,
-		"to":    to,
-		"first": githubv4.Int(first),
-		"after": after,
+		gqlVarLogin: githubv4.String(username),
+		gqlVarFrom:  from,
+		gqlVarTo:    to,
+		gqlVarFirst: githubv4.Int(first),
+		gqlVarAfter: after,
 	}
 
 	if err := f.repo.client.Query(ctx, &query, variables); err != nil {
