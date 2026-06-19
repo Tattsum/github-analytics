@@ -15,20 +15,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
 
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install --save-dev markdownlint-cli2@latest
-          fi
+        run: pnpm install --frozen-lockfile
 
       - name: Run markdownlint
-        run: |
-          if [ -f node_modules/.bin/markdownlint-cli2 ]; then
-            ./node_modules/.bin/markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
-          else
-            npx --yes markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**' '!.github/**'
-          fi
+        run: pnpm run lint:markdown

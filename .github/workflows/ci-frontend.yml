@@ -1,12 +1,15 @@
-name: Lint JSON and YAML
+name: Frontend
 
 on:
   workflow_call:
 
 jobs:
-  lint-json-yaml:
-    name: Lint JSON and YAML
+  frontend:
+    name: Frontend (codegen, build, test)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,5 +25,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run JSON and YAML linters
-        run: pnpm run lint:json-yaml
+      - name: Generate GraphQL types
+        run: pnpm run codegen
+
+      - name: Type-check and build
+        run: pnpm run build
+
+      - name: Run tests
+        run: pnpm run test

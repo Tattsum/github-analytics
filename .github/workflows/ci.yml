@@ -27,14 +27,18 @@ jobs:
   lint-github-actions:
     uses: ./.github/workflows/ci-lint-github-actions.yml
 
+  # フロントエンド（pnpm: codegen・型チェック・ビルド・テスト）
+  frontend:
+    uses: ./.github/workflows/ci-frontend.yml
+
   # フェーズ2: フェーズ1の後に並列実行（ビルドとテスト）
   build:
     uses: ./.github/workflows/ci-build.yml
-    needs: [format-check, lint-go, lint-markdown, lint-json-yaml, lint-github-actions]
+    needs: [format-check, lint-go, lint-markdown, lint-json-yaml, lint-github-actions, frontend]
 
   test:
     uses: ./.github/workflows/ci-test.yml
-    needs: [format-check, lint-go, lint-markdown, lint-json-yaml, lint-github-actions]
+    needs: [format-check, lint-go, lint-markdown, lint-json-yaml, lint-github-actions, frontend]
 
   # フェーズ3: テストの後に実行（カバレッジ）
   coverage:
