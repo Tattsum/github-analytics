@@ -3,7 +3,7 @@
 # so every contributor (and CI) builds against the same Go / Node / pnpm.
 [tools]
 # Go must match the version declared in go.mod.
-go = "1.25"
+go = "1.26.4"
 # Node LTS for the Vite/React frontend.
 node = "lts"
 # pnpm is the package manager for the JS tooling and the frontend.

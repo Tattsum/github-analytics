@@ -76,7 +76,7 @@ github-analytics/
 
 ### 前提条件
 
-- [mise](https://mise.jdx.dev/) でツールチェーンを管理（Go 1.25 / Node LTS / pnpm）
+- [mise](https://mise.jdx.dev/) でツールチェーンを管理（Go 1.26.4 / Node LTS / pnpm）
 - Docker / Docker Compose（PostgreSQL 用）
 - GitHub Personal Access Token
 

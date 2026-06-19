@@ -14,7 +14,7 @@ COPY frontend/ ./
 RUN pnpm build
 
 # --- Stage 2: build the Go server with the SPA embedded ---
-FROM golang:1.25 AS backend
+FROM golang:1.26.4 AS backend
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
