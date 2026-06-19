@@ -35,16 +35,33 @@ func showHelp() {
 	fmt.Println("  ./github-analytics -users user1,user2")
 	fmt.Println("  # 組織のメンバーを分析")
 	fmt.Println("  ./github-analytics -org myorg")
+	fmt.Println("  # 組織内の特定チームのメンバーだけを分析")
+	fmt.Println("  ./github-analytics -org myorg -team my-team")
 	fmt.Println("  # privateリポジトリも含める")
 	fmt.Println("  ./github-analytics -users user1 -private")
 	os.Exit(0)
 }
 
 // getUsers はユーザーリストを取得します.
-func getUsers(orgName, usersStr, token *string) []string {
+func getUsers(orgName, teamSlug, usersStr, token *string) []string {
 	var users []string
 
 	switch {
+	case *teamSlug != "" && *orgName == "":
+		log.Fatal("-team requires -org to be specified as well.")
+	case *teamSlug != "":
+		var err error
+
+		users, err = fetchTeamMembers(*token, *orgName, *teamSlug)
+		if err != nil {
+			log.Fatalf("Failed to fetch team members: %v", err)
+		}
+
+		if len(users) == 0 {
+			log.Fatalf("No members found in team: %s/%s", *orgName, *teamSlug)
+		}
+
+		fmt.Printf("Found %d members in team: %s/%s\n", len(users), *orgName, *teamSlug)
 	case *orgName != "":
 		var err error
 
@@ -139,8 +156,10 @@ type userResult struct {
 
 func main() {
 	var (
+		mode           = flag.String("mode", "file", "実行モード: file（output/ へ出力）または batch（Postgresへスナップショット保存）")
 		usersStr       = flag.String("users", "", "分析対象のGitHubユーザー名（カンマ区切り、例: user1,user2）")
 		orgName        = flag.String("org", "", "分析対象のGitHub組織名（指定した場合、組織のメンバーを分析）")
+		teamSlug       = flag.String("team", "", "分析対象のチームslug（-org と併用。組織内の特定チームのメンバーのみを分析）")
 		outputDir      = flag.String("output", "output", "出力ディレクトリ")
 		includePrivate = flag.Bool("private", false, "privateリポジトリも対象にする")
 		help           = flag.Bool("help", false, "ヘルプを表示")
@@ -157,7 +176,12 @@ func main() {
 		log.Fatal("GITHUB_TOKEN environment variable is not set. Please set your GitHub Personal Access Token.")
 	}
 
-	users := getUsers(orgName, usersStr, &token)
+	users := getUsers(orgName, teamSlug, usersStr, &token)
+
+	if *mode == "batch" {
+		runBatch(users, *includePrivate, token)
+		return
+	}
 
 	setupAndProcessUsers(users, *outputDir, *includePrivate, token)
 
@@ -253,6 +277,62 @@ func fetchOrganizationMembers(token, orgName string) ([]string, error) {
 		}
 
 		cursor := githubv4.String(query.Organization.MembersWithRole.PageInfo.EndCursor)
+		after = &cursor
+	}
+
+	return members, nil
+}
+
+// fetchTeamMembers は組織内の特定チームのメンバー一覧を取得します.
+func fetchTeamMembers(token, orgName, teamSlug string) ([]string, error) {
+	const teamFetchTimeoutMinutes = 5
+
+	ctx, cancel := context.WithTimeout(context.Background(), teamFetchTimeoutMinutes*time.Minute)
+	defer cancel()
+
+	client := infrastructure.NewGitHubClient(token)
+
+	var query struct {
+		Organization struct {
+			Team struct {
+				Members struct {
+					Nodes []struct {
+						Login string
+					}
+					PageInfo struct {
+						HasNextPage bool
+						EndCursor   string
+					}
+				} `graphql:"members(first: $first, after: $after)"`
+			} `graphql:"team(slug: $slug)"`
+		} `graphql:"organization(login: $login)"`
+	}
+
+	members := make([]string, 0)
+	first := 100
+	after := (*githubv4.String)(nil)
+
+	for {
+		variables := map[string]interface{}{
+			"login": githubv4.String(orgName),
+			"slug":  githubv4.String(teamSlug),
+			"first": githubv4.Int(first),
+			"after": after,
+		}
+
+		if err := client.Query(ctx, &query, variables); err != nil {
+			return nil, fmt.Errorf("failed to fetch team members for %s/%s: %w", orgName, teamSlug, err)
+		}
+
+		for _, node := range query.Organization.Team.Members.Nodes {
+			members = append(members, node.Login)
+		}
+
+		if !query.Organization.Team.Members.PageInfo.HasNextPage {
+			break
+		}
+
+		cursor := githubv4.String(query.Organization.Team.Members.PageInfo.EndCursor)
 		after = &cursor
 	}
 
