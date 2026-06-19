@@ -9,6 +9,36 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
+// contributionLookbackYears はcontributionsCollectionを遡って取得する年数です.
+const contributionLookbackYears = 10
+
+// contributionWindow はcontributionsCollectionの取得期間（1年以内）を表します.
+type contributionWindow struct {
+	from githubv4.DateTime
+	to   githubv4.DateTime
+}
+
+// yearlyWindows は[start, end]を1年以内のウィンドウに分割します.
+// GitHubのcontributionsCollectionはfrom/toの差が1年を超えるとエラーになるため.
+func yearlyWindows(start, end time.Time) []contributionWindow {
+	windows := make([]contributionWindow, 0, contributionLookbackYears+1)
+
+	for cur := start; cur.Before(end); {
+		next := cur.AddDate(1, 0, 0)
+		if next.After(end) {
+			next = end
+		}
+
+		windows = append(windows, contributionWindow{
+			from: githubv4.DateTime{Time: cur},
+			to:   githubv4.DateTime{Time: next},
+		})
+		cur = next
+	}
+
+	return windows
+}
+
 // GitHubDataFetcher はGitHub APIから各種データを取得するフェッチャーです.
 type GitHubDataFetcher struct {
 	repo *GitHubRepository
@@ -100,9 +130,6 @@ func (f *GitHubDataFetcher) findRepositoryInQuery(
 			TotalCount int
 			Nodes      []struct {
 				OccurredAt githubv4.DateTime
-				Commit     struct {
-					OID string
-				}
 			}
 			PageInfo struct {
 				HasNextPage bool
@@ -131,9 +158,6 @@ func (f *GitHubDataFetcher) processCommitContributionsFromRepo(
 			TotalCount int
 			Nodes      []struct {
 				OccurredAt githubv4.DateTime
-				Commit     struct {
-					OID string
-				}
 			}
 			PageInfo struct {
 				HasNextPage bool
@@ -177,9 +201,6 @@ func (f *GitHubDataFetcher) fetchRepositoryCommitContributionsPage(
 						TotalCount int
 						Nodes      []struct {
 							OccurredAt githubv4.DateTime
-							Commit     struct {
-								OID string
-							}
 						}
 						PageInfo struct {
 							HasNextPage bool
@@ -262,6 +283,23 @@ func (f *GitHubDataFetcher) fetchRepositoryCommitContributionsPaginated(
 // 変更行数の詳細が必要な場合は、各リポジトリのコミット履歴を個別に取得する必要があります。
 // ページネーション: 各リポジトリのContributionsをページネーションで取得します。
 func (f *GitHubDataFetcher) FetchCommits(ctx context.Context, username string, _ bool) ([]*domain.Activity, error) {
+	activities := make([]*domain.Activity, 0)
+
+	// GitHubのcontributionsCollectionはfrom/toの差が1年を超えるとエラーになるため、年単位で取得する.
+	for _, window := range yearlyWindows(time.Now().AddDate(-contributionLookbackYears, 0, 0), time.Now()) {
+		windowActivities, err := f.fetchCommitsWindow(ctx, username, window.from, window.to)
+		if err != nil {
+			return nil, err
+		}
+
+		activities = append(activities, windowActivities...)
+	}
+
+	return activities, nil
+}
+
+// fetchCommitsWindow は1年以内のウィンドウのコミット貢献を取得します.
+func (f *GitHubDataFetcher) fetchCommitsWindow(ctx context.Context, username string, from, to githubv4.DateTime) ([]*domain.Activity, error) {
 	var query struct {
 		User struct {
 			ContributionsCollection struct {
@@ -273,9 +311,6 @@ func (f *GitHubDataFetcher) FetchCommits(ctx context.Context, username string, _
 						TotalCount int
 						Nodes      []struct {
 							OccurredAt githubv4.DateTime
-							Commit     struct {
-								OID string
-							}
 						}
 						PageInfo struct {
 							HasNextPage bool
@@ -287,8 +322,6 @@ func (f *GitHubDataFetcher) FetchCommits(ctx context.Context, username string, _
 		} `graphql:"user(login: $login)"`
 	}
 
-	from := githubv4.DateTime{Time: time.Now().AddDate(-10, 0, 0)}
-	to := githubv4.DateTime{Time: time.Now()}
 	first := 100
 	after := (*githubv4.String)(nil)
 
@@ -320,9 +353,6 @@ func (f *GitHubDataFetcher) processCommitsWithPagination(
 			TotalCount int
 			Nodes      []struct {
 				OccurredAt githubv4.DateTime
-				Commit     struct {
-					OID string
-				}
 			}
 			PageInfo struct {
 				HasNextPage bool
@@ -657,6 +687,23 @@ func (f *GitHubDataFetcher) fetchRepositoryReviewContributionsPaginated(
 // FetchReviews はPRレビューを取得します.
 // ページネーション: 各リポジトリのContributionsをページネーションで取得します。
 func (f *GitHubDataFetcher) FetchReviews(ctx context.Context, username string, _ bool) ([]*domain.Activity, error) {
+	activities := make([]*domain.Activity, 0)
+
+	// GitHubのcontributionsCollectionはfrom/toの差が1年を超えるとエラーになるため、年単位で取得する.
+	for _, window := range yearlyWindows(time.Now().AddDate(-contributionLookbackYears, 0, 0), time.Now()) {
+		windowActivities, err := f.fetchReviewsWindow(ctx, username, window.from, window.to)
+		if err != nil {
+			return nil, err
+		}
+
+		activities = append(activities, windowActivities...)
+	}
+
+	return activities, nil
+}
+
+// fetchReviewsWindow は1年以内のウィンドウのレビュー貢献を取得します.
+func (f *GitHubDataFetcher) fetchReviewsWindow(ctx context.Context, username string, from, to githubv4.DateTime) ([]*domain.Activity, error) {
 	var query struct {
 		User struct {
 			ContributionsCollection struct {
@@ -682,8 +729,6 @@ func (f *GitHubDataFetcher) FetchReviews(ctx context.Context, username string, _
 		} `graphql:"user(login: $login)"`
 	}
 
-	from := githubv4.DateTime{Time: time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC)}
-	to := githubv4.DateTime{Time: time.Now()}
 	first := 100
 	after := (*githubv4.String)(nil)
 
