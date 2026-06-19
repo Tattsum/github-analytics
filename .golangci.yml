@@ -160,3 +160,15 @@ linters:
           - goconst
           - gocritic
           - noctx
+
+# Go のフォーマットは gofmt ではなく gofumpt（より厳格）を使用する。
+# `golangci-lint fmt` で適用、`golangci-lint fmt --diff` で CI チェックする。
+formatters:
+  enable:
+    - gofumpt
+  exclusions:
+    generated: lax
+    paths:
+      - vendor
+      - ".*\\.pb\\.go$"
+      - ".*\\.gen\\.go$"
