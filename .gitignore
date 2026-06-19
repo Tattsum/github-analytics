@@ -4,7 +4,9 @@
 *.dll
 *.so
 *.dylib
-github-analytics
+# CLI binary built at the repo root (`go build -o github-analytics ./cmd/github-analytics`).
+# Anchored with a leading slash so it does NOT also ignore the cmd/github-analytics/ source dir.
+/github-analytics
 # Server binary built from ./cmd/server (e.g. `go build ./cmd/server`).
 /server
 
