@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.local
+
+# graphql-codegen generated output is committed so types exist without codegen
