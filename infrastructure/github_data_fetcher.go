@@ -222,7 +222,7 @@ func (f *GitHubDataFetcher) fetchRepositoryCommitContributionsPage(
 	}
 
 	first := 100
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		gqlVarLogin: githubv4.String(username),
 		gqlVarFrom:  from,
 		gqlVarTo:    to,
@@ -335,7 +335,7 @@ func (f *GitHubDataFetcher) fetchCommitsWindow(ctx context.Context, username str
 	after := (*githubv4.String)(nil)
 
 	// 最初のクエリでリポジトリのリストを取得
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		gqlVarLogin: githubv4.String(username),
 		gqlVarFrom:  from,
 		gqlVarTo:    to,
@@ -435,7 +435,7 @@ func (f *GitHubDataFetcher) FetchPullRequests(ctx context.Context, username stri
 	after := (*githubv4.String)(nil)
 
 	for {
-		variables := map[string]interface{}{
+		variables := map[string]any{
 			gqlVarLogin: githubv4.String(username),
 			gqlVarFirst: githubv4.Int(first),
 			gqlVarAfter: after,
@@ -494,7 +494,7 @@ func (f *GitHubDataFetcher) FetchIssues(ctx context.Context, username string, _ 
 	after := (*githubv4.String)(nil)
 
 	for {
-		variables := map[string]interface{}{
+		variables := map[string]any{
 			gqlVarLogin: githubv4.String(username),
 			gqlVarFirst: githubv4.Int(first),
 			gqlVarAfter: after,
@@ -629,7 +629,7 @@ func (f *GitHubDataFetcher) fetchRepositoryReviewContributionsPage(
 	}
 
 	first := 100
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		gqlVarLogin: githubv4.String(username),
 		gqlVarFrom:  from,
 		gqlVarTo:    to,
@@ -742,7 +742,7 @@ func (f *GitHubDataFetcher) fetchReviewsWindow(ctx context.Context, username str
 	after := (*githubv4.String)(nil)
 
 	// 最初のクエリでリポジトリのリストを取得
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		gqlVarLogin: githubv4.String(username),
 		gqlVarFrom:  from,
 		gqlVarTo:    to,

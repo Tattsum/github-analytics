@@ -159,7 +159,7 @@ func TestBuildStatCreates_PersistsAllRepositories(t *testing.T) {
 	m := newMember(t, "prolific")
 	const repoCount = 7
 	m.AllRepositories = make([]*domain.RepositoryActivity, 0, repoCount)
-	for i := 0; i < repoCount; i++ {
+	for i := range repoCount {
 		m.AllRepositories = append(m.AllRepositories, &domain.RepositoryActivity{
 			Repository:  "org/repo-" + string(rune('a'+i)),
 			CommitCount: repoCount - i,

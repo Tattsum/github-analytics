@@ -11,8 +11,7 @@ import (
 )
 
 // StatisticsService は統計情報を計算するサービスです.
-type StatisticsService struct {
-}
+type StatisticsService struct{}
 
 // NewStatisticsService は新しいStatisticsServiceを作成します.
 func NewStatisticsService() *StatisticsService {
@@ -194,8 +193,7 @@ func (s *StatisticsService) calculateYearlyStatistics(
 	allActivities []*domain.Activity,
 	data *infrastructure.UserActivityData,
 ) {
-	yearlyCommits, yearlyPRCreated, yearlyPRMerged, yearlyIssues, yearlyReviews, yearlyAdditions, yearlyDeletions :=
-		s.aggregateYearlyData(data, allActivities)
+	yearlyCommits, yearlyPRCreated, yearlyPRMerged, yearlyIssues, yearlyReviews, yearlyAdditions, yearlyDeletions := s.aggregateYearlyData(data, allActivities)
 
 	years := s.collectAllYears(yearlyCommits, yearlyPRCreated, yearlyIssues, yearlyReviews)
 

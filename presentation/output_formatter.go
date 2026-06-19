@@ -28,8 +28,8 @@ func NewOutputFormatter(outputDir string) *OutputFormatter {
 }
 
 const (
-	dirPerm     = 0750
-	filePerm    = 0600
+	dirPerm     = 0o750
+	filePerm    = 0o600
 	hoursPerDay = 24
 )
 
@@ -63,8 +63,8 @@ func (f *OutputFormatter) FormatAll(stats *domain.UserStatistics) error {
 }
 
 // buildJSONData はJSON用のデータ構造を構築します.
-func (f *OutputFormatter) buildJSONData(stats *domain.UserStatistics) map[string]interface{} {
-	jsonData := map[string]interface{}{
+func (f *OutputFormatter) buildJSONData(stats *domain.UserStatistics) map[string]any {
+	jsonData := map[string]any{
 		"user":                   stats.User.Login,
 		"total_commits":          stats.TotalCommits,
 		"total_pr_created":       stats.TotalPRCreated,
@@ -87,10 +87,10 @@ func (f *OutputFormatter) buildJSONData(stats *domain.UserStatistics) map[string
 }
 
 // buildYearlyStatsJSON は年別統計のJSONデータを構築します.
-func (f *OutputFormatter) buildYearlyStatsJSON(stats *domain.UserStatistics) map[string]interface{} {
-	yearlyStats := make(map[string]interface{})
+func (f *OutputFormatter) buildYearlyStatsJSON(stats *domain.UserStatistics) map[string]any {
+	yearlyStats := make(map[string]any)
 	for year, yearlyStat := range stats.YearlyStats {
-		yearlyStats[fmt.Sprintf("%d", year)] = map[string]interface{}{
+		yearlyStats[fmt.Sprintf("%d", year)] = map[string]any{
 			"year":         yearlyStat.Year,
 			"commit_count": yearlyStat.CommitCount,
 			"pr_created":   yearlyStat.PRCreated,
@@ -106,10 +106,10 @@ func (f *OutputFormatter) buildYearlyStatsJSON(stats *domain.UserStatistics) map
 }
 
 // buildTopRepositoriesJSON はTOP3リポジトリのJSONデータを構築します.
-func (f *OutputFormatter) buildTopRepositoriesJSON(stats *domain.UserStatistics) []interface{} {
-	repos := make([]interface{}, 0, len(stats.TopRepositories))
+func (f *OutputFormatter) buildTopRepositoriesJSON(stats *domain.UserStatistics) []any {
+	repos := make([]any, 0, len(stats.TopRepositories))
 	for _, repo := range stats.TopRepositories {
-		repos = append(repos, map[string]interface{}{
+		repos = append(repos, map[string]any{
 			"repository":     repo.Repository,
 			"commit_count":   repo.CommitCount,
 			"pr_count":       repo.PRCount,
@@ -126,10 +126,10 @@ func (f *OutputFormatter) buildTopRepositoriesJSON(stats *domain.UserStatistics)
 }
 
 // buildLongTermRepositoriesJSON は長期間関与リポジトリのJSONデータを構築します.
-func (f *OutputFormatter) buildLongTermRepositoriesJSON(stats *domain.UserStatistics) []interface{} {
-	repos := make([]interface{}, 0, len(stats.LongTermRepositories))
+func (f *OutputFormatter) buildLongTermRepositoriesJSON(stats *domain.UserStatistics) []any {
+	repos := make([]any, 0, len(stats.LongTermRepositories))
 	for _, repo := range stats.LongTermRepositories {
-		repos = append(repos, map[string]interface{}{
+		repos = append(repos, map[string]any{
 			"repository":     repo.Repository,
 			"commit_count":   repo.CommitCount,
 			"first_activity": repo.FirstActivity.Format(time.RFC3339),
@@ -142,10 +142,10 @@ func (f *OutputFormatter) buildLongTermRepositoriesJSON(stats *domain.UserStatis
 }
 
 // buildRoleTransitionJSON はロール変化のJSONデータを構築します.
-func (f *OutputFormatter) buildRoleTransitionJSON(stats *domain.UserStatistics) []interface{} {
-	transitions := make([]interface{}, 0, len(stats.RoleTransition))
+func (f *OutputFormatter) buildRoleTransitionJSON(stats *domain.UserStatistics) []any {
+	transitions := make([]any, 0, len(stats.RoleTransition))
 	for _, transition := range stats.RoleTransition {
-		transitions = append(transitions, map[string]interface{}{
+		transitions = append(transitions, map[string]any{
 			"year":         transition.Year,
 			"pr_created":   transition.PRCreated,
 			"review_count": transition.ReviewCount,

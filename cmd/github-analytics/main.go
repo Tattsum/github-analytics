@@ -119,10 +119,10 @@ func collectResults(
 	results chan userResult,
 	users []string,
 	formatter *presentation.OutputFormatter,
-) map[string]interface{} {
-	allStats := make(map[string]interface{})
+) map[string]any {
+	allStats := make(map[string]any)
 
-	for i := 0; i < len(users); i++ {
+	for range users {
 		result := <-results
 		if result.err != nil {
 			log.Printf("Error processing user %s: %v", result.username, result.err)
@@ -150,7 +150,7 @@ func collectResults(
 
 type userResult struct {
 	username string
-	stats    interface{}
+	stats    any
 	err      error
 }
 
@@ -192,7 +192,7 @@ func main() {
 // setupAndProcessUsers はユーザー処理のセットアップと実行を行います.
 func setupAndProcessUsers(users []string, outputDir string, includePrivate bool, token string) {
 	const (
-		dirPerm        = 0750
+		dirPerm        = 0o750
 		timeoutMinutes = 30
 	)
 
@@ -258,7 +258,7 @@ func fetchOrganizationMembers(token, orgName string) ([]string, error) {
 	after := (*githubv4.String)(nil)
 
 	for {
-		variables := map[string]interface{}{
+		variables := map[string]any{
 			"login": githubv4.String(orgName),
 			"first": githubv4.Int(first),
 			"after": after,
@@ -313,7 +313,7 @@ func fetchTeamMembers(token, orgName, teamSlug string) ([]string, error) {
 	after := (*githubv4.String)(nil)
 
 	for {
-		variables := map[string]interface{}{
+		variables := map[string]any{
 			"login": githubv4.String(orgName),
 			"slug":  githubv4.String(teamSlug),
 			"first": githubv4.Int(first),
@@ -340,7 +340,7 @@ func fetchTeamMembers(token, orgName, teamSlug string) ([]string, error) {
 }
 
 // generateCombinedReport は複数ユーザーの統合レポートを生成します.
-func generateCombinedReport(_ string, _ map[string]interface{}) error {
+func generateCombinedReport(_ string, _ map[string]any) error {
 	// 簡易的な統合レポート
 	// より詳細な実装が必要な場合は拡張可能
 	return nil
