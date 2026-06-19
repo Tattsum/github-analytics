@@ -35,8 +35,10 @@ type UserStatistics struct {
 	YearlyStats          map[int]*YearlyStatistics
 	TopRepositories      []*RepositoryActivity
 	LongTermRepositories []*RepositoryActivity
-	PRToReviewRatio      float64 // PR作成数に対するレビュー数の比率
-	RoleTransition       []RoleTransitionPoint
+	// AllRepositories は関与した全リポジトリの活動内訳です（TopRepositories/LongTermRepositoriesとは別に全件を保持する）.
+	AllRepositories []*RepositoryActivity
+	PRToReviewRatio float64 // PR作成数に対するレビュー数の比率
+	RoleTransition  []RoleTransitionPoint
 }
 
 // RoleTransitionPoint はロール変化のポイントを表します.
@@ -55,6 +57,7 @@ func NewUserStatistics(user *User) *UserStatistics {
 		YearlyStats:          make(map[int]*YearlyStatistics),
 		TopRepositories:      make([]*RepositoryActivity, 0),
 		LongTermRepositories: make([]*RepositoryActivity, 0),
+		AllRepositories:      make([]*RepositoryActivity, 0),
 		RoleTransition:       make([]RoleTransitionPoint, 0),
 	}
 }

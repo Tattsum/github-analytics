@@ -51,6 +51,7 @@ func TestNewUserStatistics(t *testing.T) {
 	assert.Equal(t, 0, got.TotalCommits, "TotalCommits should be 0")
 	assert.NotNil(t, got.YearlyStats, "YearlyStats should not be nil")
 	assert.NotNil(t, got.TopRepositories, "TopRepositories should not be nil")
+	assert.NotNil(t, got.AllRepositories, "AllRepositories should not be nil")
 }
 
 func TestUserStatistics_CalculatePRToReviewRatio(t *testing.T) {
