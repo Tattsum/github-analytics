@@ -88,6 +88,7 @@ func (r *SnapshotReader) Member(ctx context.Context, login string) (*domain.User
 		return q.
 			WithMemberStats().
 			WithMemberYearStats().
+			WithMemberDayStats().
 			WithMemberRepoStats()
 	})
 	if err != nil {
@@ -111,7 +112,44 @@ func (r *SnapshotReader) Member(ctx context.Context, login string) (*domain.User
 		return nil, nil
 	}
 
-	return buildUserStatistics(member, snap.Edges.MemberYearStats, snap.Edges.MemberRepoStats), nil
+	return buildUserStatistics(member, snap.Edges.MemberYearStats, snap.Edges.MemberDayStats, snap.Edges.MemberRepoStats), nil
+}
+
+// TeamDailyStats は最新スナップショットのメンバー日別統計をメンバー横断で同一日に合算し、
+// チーム全体の日別合計を日付昇順の時系列で返します.
+// スナップショットが無い場合は空スライスを返します（エラーにしません）.
+func (r *SnapshotReader) TeamDailyStats(ctx context.Context) ([]*domain.DailyStatistics, error) {
+	snap, err := r.latest(ctx, func(q *ent.SnapshotQuery) *ent.SnapshotQuery {
+		return q.WithMemberDayStats()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if snap == nil {
+		return []*domain.DailyStatistics{}, nil
+	}
+
+	return application.AggregateTeamDaily(toDailyStatistics(snap.Edges.MemberDayStats)), nil
+}
+
+// toDailyStatistics は ent の MemberDayStat 群を domain.DailyStatistics へマッピングします.
+// 各行は1メンバーの1日分で、チーム合算は呼び出し元（AggregateTeamDaily）が行います.
+func toDailyStatistics(stats []*ent.MemberDayStat) []*domain.DailyStatistics {
+	out := make([]*domain.DailyStatistics, 0, len(stats))
+	for _, mds := range stats {
+		daily := domain.NewDailyStatistics(mds.Day)
+		daily.CommitCount = mds.CommitCount
+		daily.PRCreated = mds.PrCreated
+		daily.PRMerged = mds.PrMerged
+		daily.IssueCount = mds.IssueCount
+		daily.ReviewCount = mds.ReviewCount
+		daily.TotalAdditions = mds.Additions
+		daily.TotalDeletions = mds.Deletions
+		out = append(out, daily)
+	}
+
+	return out
 }
 
 // TeamSummary はチーム全体の合計・集計値を返します.
@@ -230,6 +268,7 @@ func countRepositories(stats []*ent.MemberRepoStat) int {
 func buildUserStatistics(
 	member *ent.MemberStat,
 	yearStats []*ent.MemberYearStat,
+	dayStats []*ent.MemberDayStat,
 	repoStats []*ent.MemberRepoStat,
 ) *domain.UserStatistics {
 	stats := domain.NewUserStatistics(domain.NewUser(member.Login, member.Login, ""))
@@ -259,6 +298,22 @@ func buildUserStatistics(
 		yearly.TotalAdditions = ys.Additions
 		yearly.TotalDeletions = ys.Deletions
 		stats.YearlyStats[ys.Year] = yearly
+	}
+
+	for _, ds := range dayStats {
+		if ds.Login != member.Login {
+			continue
+		}
+
+		daily := domain.NewDailyStatistics(ds.Day)
+		daily.CommitCount = ds.CommitCount
+		daily.PRCreated = ds.PrCreated
+		daily.PRMerged = ds.PrMerged
+		daily.IssueCount = ds.IssueCount
+		daily.ReviewCount = ds.ReviewCount
+		daily.TotalAdditions = ds.Additions
+		daily.TotalDeletions = ds.Deletions
+		stats.DailyStats[ds.Day] = daily
 	}
 
 	stats.AllRepositories = buildMemberRepositories(member.Login, repoStats)

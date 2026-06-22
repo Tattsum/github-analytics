@@ -1,6 +1,10 @@
 package application
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/Tattsum/github-analytics/domain"
+)
 
 // MemberRepoStat はメンバー×リポジトリ1件分の集計済みメトリクスです.
 // リポジトリ軸の横断集計（リポジトリごとの合計・貢献者一覧）を組み立てる入力として用います.
@@ -88,4 +92,42 @@ func AggregateRepositories(stats []*MemberRepoStat) []*RepositoryStats {
 	})
 
 	return repos
+}
+
+// AggregateTeamDaily はメンバー単位の日別統計行を同一日付で合算し、
+// チーム全体の日別合計を日付(YYYY-MM-DD)昇順の時系列で返します.
+// 期間絞り込み・推移グラフはフロントエンドで行うため、ここでは決定的な昇順のみ保証します.
+func AggregateTeamDaily(rows []*domain.DailyStatistics) []*domain.DailyStatistics {
+	byDay := make(map[string]*domain.DailyStatistics)
+
+	for _, row := range rows {
+		if row == nil {
+			continue
+		}
+
+		day, exists := byDay[row.Date]
+		if !exists {
+			day = domain.NewDailyStatistics(row.Date)
+			byDay[row.Date] = day
+		}
+
+		day.CommitCount += row.CommitCount
+		day.PRCreated += row.PRCreated
+		day.PRMerged += row.PRMerged
+		day.IssueCount += row.IssueCount
+		day.ReviewCount += row.ReviewCount
+		day.TotalAdditions += row.TotalAdditions
+		day.TotalDeletions += row.TotalDeletions
+	}
+
+	days := make([]*domain.DailyStatistics, 0, len(byDay))
+	for _, day := range byDay {
+		days = append(days, day)
+	}
+
+	sort.Slice(days, func(i, j int) bool {
+		return days[i].Date < days[j].Date
+	})
+
+	return days
 }

@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// MemberDayStat is the predicate function for memberdaystat builders.
+type MemberDayStat func(*sql.Selector)
+
 // MemberRepoStat is the predicate function for memberrepostat builders.
 type MemberRepoStat func(*sql.Selector)
 

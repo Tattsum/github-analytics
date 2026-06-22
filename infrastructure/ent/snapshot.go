@@ -31,11 +31,13 @@ type SnapshotEdges struct {
 	MemberStats []*MemberStat `json:"member_stats,omitempty"`
 	// MemberYearStats holds the value of the member_year_stats edge.
 	MemberYearStats []*MemberYearStat `json:"member_year_stats,omitempty"`
+	// MemberDayStats holds the value of the member_day_stats edge.
+	MemberDayStats []*MemberDayStat `json:"member_day_stats,omitempty"`
 	// MemberRepoStats holds the value of the member_repo_stats edge.
 	MemberRepoStats []*MemberRepoStat `json:"member_repo_stats,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // MemberStatsOrErr returns the MemberStats value or an error if the edge
@@ -56,10 +58,19 @@ func (e SnapshotEdges) MemberYearStatsOrErr() ([]*MemberYearStat, error) {
 	return nil, &NotLoadedError{edge: "member_year_stats"}
 }
 
+// MemberDayStatsOrErr returns the MemberDayStats value or an error if the edge
+// was not loaded in eager-loading.
+func (e SnapshotEdges) MemberDayStatsOrErr() ([]*MemberDayStat, error) {
+	if e.loadedTypes[2] {
+		return e.MemberDayStats, nil
+	}
+	return nil, &NotLoadedError{edge: "member_day_stats"}
+}
+
 // MemberRepoStatsOrErr returns the MemberRepoStats value or an error if the edge
 // was not loaded in eager-loading.
 func (e SnapshotEdges) MemberRepoStatsOrErr() ([]*MemberRepoStat, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.MemberRepoStats, nil
 	}
 	return nil, &NotLoadedError{edge: "member_repo_stats"}
@@ -122,6 +133,11 @@ func (_m *Snapshot) QueryMemberStats() *MemberStatQuery {
 // QueryMemberYearStats queries the "member_year_stats" edge of the Snapshot entity.
 func (_m *Snapshot) QueryMemberYearStats() *MemberYearStatQuery {
 	return NewSnapshotClient(_m.config).QueryMemberYearStats(_m)
+}
+
+// QueryMemberDayStats queries the "member_day_stats" edge of the Snapshot entity.
+func (_m *Snapshot) QueryMemberDayStats() *MemberDayStatQuery {
+	return NewSnapshotClient(_m.config).QueryMemberDayStats(_m)
 }
 
 // QueryMemberRepoStats queries the "member_repo_stats" edge of the Snapshot entity.

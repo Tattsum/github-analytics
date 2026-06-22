@@ -146,6 +146,29 @@ func HasMemberYearStatsWith(preds ...predicate.MemberYearStat) predicate.Snapsho
 	})
 }
 
+// HasMemberDayStats applies the HasEdge predicate on the "member_day_stats" edge.
+func HasMemberDayStats() predicate.Snapshot {
+	return predicate.Snapshot(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, MemberDayStatsTable, MemberDayStatsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasMemberDayStatsWith applies the HasEdge predicate on the "member_day_stats" edge with a given conditions (other predicates).
+func HasMemberDayStatsWith(preds ...predicate.MemberDayStat) predicate.Snapshot {
+	return predicate.Snapshot(func(s *sql.Selector) {
+		step := newMemberDayStatsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasMemberRepoStats applies the HasEdge predicate on the "member_repo_stats" edge.
 func HasMemberRepoStats() predicate.Snapshot {
 	return predicate.Snapshot(func(s *sql.Selector) {

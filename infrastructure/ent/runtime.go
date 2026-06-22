@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
@@ -16,6 +17,44 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	memberdaystatFields := schema.MemberDayStat{}.Fields()
+	_ = memberdaystatFields
+	// memberdaystatDescLogin is the schema descriptor for login field.
+	memberdaystatDescLogin := memberdaystatFields[0].Descriptor()
+	// memberdaystat.LoginValidator is a validator for the "login" field. It is called by the builders before save.
+	memberdaystat.LoginValidator = memberdaystatDescLogin.Validators[0].(func(string) error)
+	// memberdaystatDescDay is the schema descriptor for day field.
+	memberdaystatDescDay := memberdaystatFields[1].Descriptor()
+	// memberdaystat.DayValidator is a validator for the "day" field. It is called by the builders before save.
+	memberdaystat.DayValidator = memberdaystatDescDay.Validators[0].(func(string) error)
+	// memberdaystatDescCommitCount is the schema descriptor for commit_count field.
+	memberdaystatDescCommitCount := memberdaystatFields[2].Descriptor()
+	// memberdaystat.DefaultCommitCount holds the default value on creation for the commit_count field.
+	memberdaystat.DefaultCommitCount = memberdaystatDescCommitCount.Default.(int)
+	// memberdaystatDescPrCreated is the schema descriptor for pr_created field.
+	memberdaystatDescPrCreated := memberdaystatFields[3].Descriptor()
+	// memberdaystat.DefaultPrCreated holds the default value on creation for the pr_created field.
+	memberdaystat.DefaultPrCreated = memberdaystatDescPrCreated.Default.(int)
+	// memberdaystatDescPrMerged is the schema descriptor for pr_merged field.
+	memberdaystatDescPrMerged := memberdaystatFields[4].Descriptor()
+	// memberdaystat.DefaultPrMerged holds the default value on creation for the pr_merged field.
+	memberdaystat.DefaultPrMerged = memberdaystatDescPrMerged.Default.(int)
+	// memberdaystatDescIssueCount is the schema descriptor for issue_count field.
+	memberdaystatDescIssueCount := memberdaystatFields[5].Descriptor()
+	// memberdaystat.DefaultIssueCount holds the default value on creation for the issue_count field.
+	memberdaystat.DefaultIssueCount = memberdaystatDescIssueCount.Default.(int)
+	// memberdaystatDescReviewCount is the schema descriptor for review_count field.
+	memberdaystatDescReviewCount := memberdaystatFields[6].Descriptor()
+	// memberdaystat.DefaultReviewCount holds the default value on creation for the review_count field.
+	memberdaystat.DefaultReviewCount = memberdaystatDescReviewCount.Default.(int)
+	// memberdaystatDescAdditions is the schema descriptor for additions field.
+	memberdaystatDescAdditions := memberdaystatFields[7].Descriptor()
+	// memberdaystat.DefaultAdditions holds the default value on creation for the additions field.
+	memberdaystat.DefaultAdditions = memberdaystatDescAdditions.Default.(int)
+	// memberdaystatDescDeletions is the schema descriptor for deletions field.
+	memberdaystatDescDeletions := memberdaystatFields[8].Descriptor()
+	// memberdaystat.DefaultDeletions holds the default value on creation for the deletions field.
+	memberdaystat.DefaultDeletions = memberdaystatDescDeletions.Default.(int)
 	memberrepostatFields := schema.MemberRepoStat{}.Fields()
 	_ = memberrepostatFields
 	// memberrepostatDescLogin is the schema descriptor for login field.

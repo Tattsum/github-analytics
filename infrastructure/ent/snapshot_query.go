@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
@@ -28,6 +29,7 @@ type SnapshotQuery struct {
 	predicates          []predicate.Snapshot
 	withMemberStats     *MemberStatQuery
 	withMemberYearStats *MemberYearStatQuery
+	withMemberDayStats  *MemberDayStatQuery
 	withMemberRepoStats *MemberRepoStatQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -102,6 +104,28 @@ func (_q *SnapshotQuery) QueryMemberYearStats() *MemberYearStatQuery {
 			sqlgraph.From(snapshot.Table, snapshot.FieldID, selector),
 			sqlgraph.To(memberyearstat.Table, memberyearstat.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, snapshot.MemberYearStatsTable, snapshot.MemberYearStatsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryMemberDayStats chains the current query on the "member_day_stats" edge.
+func (_q *SnapshotQuery) QueryMemberDayStats() *MemberDayStatQuery {
+	query := (&MemberDayStatClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(snapshot.Table, snapshot.FieldID, selector),
+			sqlgraph.To(memberdaystat.Table, memberdaystat.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, snapshot.MemberDayStatsTable, snapshot.MemberDayStatsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -325,6 +349,7 @@ func (_q *SnapshotQuery) Clone() *SnapshotQuery {
 		predicates:          append([]predicate.Snapshot{}, _q.predicates...),
 		withMemberStats:     _q.withMemberStats.Clone(),
 		withMemberYearStats: _q.withMemberYearStats.Clone(),
+		withMemberDayStats:  _q.withMemberDayStats.Clone(),
 		withMemberRepoStats: _q.withMemberRepoStats.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
@@ -351,6 +376,17 @@ func (_q *SnapshotQuery) WithMemberYearStats(opts ...func(*MemberYearStatQuery))
 		opt(query)
 	}
 	_q.withMemberYearStats = query
+	return _q
+}
+
+// WithMemberDayStats tells the query-builder to eager-load the nodes that are connected to
+// the "member_day_stats" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SnapshotQuery) WithMemberDayStats(opts ...func(*MemberDayStatQuery)) *SnapshotQuery {
+	query := (&MemberDayStatClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withMemberDayStats = query
 	return _q
 }
 
@@ -443,9 +479,10 @@ func (_q *SnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Sna
 	var (
 		nodes       = []*Snapshot{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withMemberStats != nil,
 			_q.withMemberYearStats != nil,
+			_q.withMemberDayStats != nil,
 			_q.withMemberRepoStats != nil,
 		}
 	)
@@ -478,6 +515,13 @@ func (_q *SnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Sna
 		if err := _q.loadMemberYearStats(ctx, query, nodes,
 			func(n *Snapshot) { n.Edges.MemberYearStats = []*MemberYearStat{} },
 			func(n *Snapshot, e *MemberYearStat) { n.Edges.MemberYearStats = append(n.Edges.MemberYearStats, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withMemberDayStats; query != nil {
+		if err := _q.loadMemberDayStats(ctx, query, nodes,
+			func(n *Snapshot) { n.Edges.MemberDayStats = []*MemberDayStat{} },
+			func(n *Snapshot, e *MemberDayStat) { n.Edges.MemberDayStats = append(n.Edges.MemberDayStats, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -548,6 +592,37 @@ func (_q *SnapshotQuery) loadMemberYearStats(ctx context.Context, query *MemberY
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "snapshot_member_year_stats" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SnapshotQuery) loadMemberDayStats(ctx context.Context, query *MemberDayStatQuery, nodes []*Snapshot, init func(*Snapshot), assign func(*Snapshot, *MemberDayStat)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Snapshot)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.MemberDayStat(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(snapshot.MemberDayStatsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.snapshot_member_day_stats
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "snapshot_member_day_stats" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "snapshot_member_day_stats" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

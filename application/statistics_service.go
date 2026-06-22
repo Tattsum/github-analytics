@@ -35,6 +35,9 @@ func (s *StatisticsService) CalculateStatistics(data *infrastructure.UserActivit
 	// 年別統計を計算
 	s.calculateYearlyStatistics(stats, allActivities, data)
 
+	// 日別統計を計算
+	s.calculateDailyStatistics(stats, allActivities, data)
+
 	// リポジトリ統計を計算
 	s.calculateRepositoryStatistics(stats, allActivities)
 
@@ -200,6 +203,103 @@ func (s *StatisticsService) calculateYearlyStatistics(
 	s.buildYearlyStats(stats, years, yearlyCommits, yearlyPRCreated, yearlyPRMerged, yearlyIssues, yearlyReviews, yearlyAdditions, yearlyDeletions)
 
 	s.calculatePeakYear(stats)
+}
+
+// dayKey は活動日時をUTC基準の "2006-01-02" 形式の日付キーへ丸めます.
+// 日単位の任意日付範囲フィルタと推移グラフが、タイムゾーンに依存せず一貫した
+// 境界で集計されるよう、常にUTCを基準にします.
+func dayKey(t time.Time) string {
+	return t.UTC().Format(time.DateOnly)
+}
+
+// aggregateDailyData は日別データを集計します.
+// aggregateYearlyData と対になる処理で、活動を日付(YYYY-MM-DD)単位にバケットします.
+func (s *StatisticsService) aggregateDailyData(
+	data *infrastructure.UserActivityData,
+	allActivities []*domain.Activity,
+) (map[string]int, map[string]int, map[string]int, map[string]int, map[string]int, map[string]int, map[string]int) {
+	dailyCommits := make(map[string]int)
+	dailyPRCreated := make(map[string]int)
+	dailyPRMerged := make(map[string]int)
+	dailyIssues := make(map[string]int)
+	dailyReviews := make(map[string]int)
+	dailyAdditions := make(map[string]int)
+	dailyDeletions := make(map[string]int)
+
+	for _, commit := range data.Commits {
+		dailyCommits[dayKey(commit.Date)]++
+	}
+
+	for _, pr := range data.PRs {
+		day := dayKey(pr.Date)
+		dailyPRCreated[day]++
+
+		if pr.IsMerged {
+			dailyPRMerged[day]++
+		}
+	}
+
+	for _, issue := range data.Issues {
+		dailyIssues[dayKey(issue.Date)]++
+	}
+
+	for _, review := range data.Reviews {
+		dailyReviews[dayKey(review.Date)]++
+	}
+
+	for _, activity := range allActivities {
+		day := dayKey(activity.Date)
+		dailyAdditions[day] += activity.Additions
+		dailyDeletions[day] += activity.Deletions
+	}
+
+	return dailyCommits, dailyPRCreated, dailyPRMerged, dailyIssues, dailyReviews, dailyAdditions, dailyDeletions
+}
+
+// collectAllDays は全ての日付キーを収集します.
+func (s *StatisticsService) collectAllDays(
+	dailyCommits, dailyPRCreated, dailyIssues, dailyReviews map[string]int,
+) map[string]bool {
+	days := make(map[string]bool)
+	for _, m := range []map[string]int{dailyCommits, dailyPRCreated, dailyIssues, dailyReviews} {
+		for day := range m {
+			days[day] = true
+		}
+	}
+
+	return days
+}
+
+// buildDailyStats は日別統計を作成します.
+func (s *StatisticsService) buildDailyStats(
+	stats *domain.UserStatistics,
+	days map[string]bool,
+	dailyCommits, dailyPRCreated, dailyPRMerged, dailyIssues, dailyReviews, dailyAdditions, dailyDeletions map[string]int,
+) {
+	for day := range days {
+		dailyStat := domain.NewDailyStatistics(day)
+		dailyStat.CommitCount = dailyCommits[day]
+		dailyStat.PRCreated = dailyPRCreated[day]
+		dailyStat.PRMerged = dailyPRMerged[day]
+		dailyStat.IssueCount = dailyIssues[day]
+		dailyStat.ReviewCount = dailyReviews[day]
+		dailyStat.TotalAdditions = dailyAdditions[day]
+		dailyStat.TotalDeletions = dailyDeletions[day]
+		stats.DailyStats[day] = dailyStat
+	}
+}
+
+// calculateDailyStatistics は日別統計を計算します.
+func (s *StatisticsService) calculateDailyStatistics(
+	stats *domain.UserStatistics,
+	allActivities []*domain.Activity,
+	data *infrastructure.UserActivityData,
+) {
+	dailyCommits, dailyPRCreated, dailyPRMerged, dailyIssues, dailyReviews, dailyAdditions, dailyDeletions := s.aggregateDailyData(data, allActivities)
+
+	days := s.collectAllDays(dailyCommits, dailyPRCreated, dailyIssues, dailyReviews)
+
+	s.buildDailyStats(stats, days, dailyCommits, dailyPRCreated, dailyPRMerged, dailyIssues, dailyReviews, dailyAdditions, dailyDeletions)
 }
 
 // aggregateRepositoryActivities はリポジトリごとに活動を集計します.

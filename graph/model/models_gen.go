@@ -2,6 +2,17 @@
 
 package model
 
+type DailyStatistics struct {
+	Date           string `json:"date"`
+	CommitCount    int    `json:"commitCount"`
+	PrCreated      int    `json:"prCreated"`
+	PrMerged       int    `json:"prMerged"`
+	IssueCount     int    `json:"issueCount"`
+	ReviewCount    int    `json:"reviewCount"`
+	TotalAdditions int    `json:"totalAdditions"`
+	TotalDeletions int    `json:"totalDeletions"`
+}
+
 type MemberStats struct {
 	Login           string  `json:"login"`
 	Name            string  `json:"name"`
@@ -91,6 +102,7 @@ type UserStatistics struct {
 	PeakActivityYear     int                    `json:"peakActivityYear"`
 	PeakActivityCommits  int                    `json:"peakActivityCommits"`
 	YearlyStats          []*YearlyStatistics    `json:"yearlyStats"`
+	DailyStats           []*DailyStatistics     `json:"dailyStats"`
 	TopRepositories      []*RepositoryActivity  `json:"topRepositories"`
 	LongTermRepositories []*RepositoryActivity  `json:"longTermRepositories"`
 	RoleTransition       []*RoleTransitionPoint `json:"roleTransition"`

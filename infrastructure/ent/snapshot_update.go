@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
@@ -58,6 +59,21 @@ func (_u *SnapshotUpdate) AddMemberYearStats(v ...*MemberYearStat) *SnapshotUpda
 		ids[i] = v[i].ID
 	}
 	return _u.AddMemberYearStatIDs(ids...)
+}
+
+// AddMemberDayStatIDs adds the "member_day_stats" edge to the MemberDayStat entity by IDs.
+func (_u *SnapshotUpdate) AddMemberDayStatIDs(ids ...int) *SnapshotUpdate {
+	_u.mutation.AddMemberDayStatIDs(ids...)
+	return _u
+}
+
+// AddMemberDayStats adds the "member_day_stats" edges to the MemberDayStat entity.
+func (_u *SnapshotUpdate) AddMemberDayStats(v ...*MemberDayStat) *SnapshotUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddMemberDayStatIDs(ids...)
 }
 
 // AddMemberRepoStatIDs adds the "member_repo_stats" edge to the MemberRepoStat entity by IDs.
@@ -120,6 +136,27 @@ func (_u *SnapshotUpdate) RemoveMemberYearStats(v ...*MemberYearStat) *SnapshotU
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMemberYearStatIDs(ids...)
+}
+
+// ClearMemberDayStats clears all "member_day_stats" edges to the MemberDayStat entity.
+func (_u *SnapshotUpdate) ClearMemberDayStats() *SnapshotUpdate {
+	_u.mutation.ClearMemberDayStats()
+	return _u
+}
+
+// RemoveMemberDayStatIDs removes the "member_day_stats" edge to MemberDayStat entities by IDs.
+func (_u *SnapshotUpdate) RemoveMemberDayStatIDs(ids ...int) *SnapshotUpdate {
+	_u.mutation.RemoveMemberDayStatIDs(ids...)
+	return _u
+}
+
+// RemoveMemberDayStats removes "member_day_stats" edges to MemberDayStat entities.
+func (_u *SnapshotUpdate) RemoveMemberDayStats(v ...*MemberDayStat) *SnapshotUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveMemberDayStatIDs(ids...)
 }
 
 // ClearMemberRepoStats clears all "member_repo_stats" edges to the MemberRepoStat entity.
@@ -269,6 +306,51 @@ func (_u *SnapshotUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.MemberDayStatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberDayStatsTable,
+			Columns: []string{snapshot.MemberDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberdaystat.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedMemberDayStatsIDs(); len(nodes) > 0 && !_u.mutation.MemberDayStatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberDayStatsTable,
+			Columns: []string{snapshot.MemberDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberdaystat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.MemberDayStatsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberDayStatsTable,
+			Columns: []string{snapshot.MemberDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberdaystat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.MemberRepoStatsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -364,6 +446,21 @@ func (_u *SnapshotUpdateOne) AddMemberYearStats(v ...*MemberYearStat) *SnapshotU
 	return _u.AddMemberYearStatIDs(ids...)
 }
 
+// AddMemberDayStatIDs adds the "member_day_stats" edge to the MemberDayStat entity by IDs.
+func (_u *SnapshotUpdateOne) AddMemberDayStatIDs(ids ...int) *SnapshotUpdateOne {
+	_u.mutation.AddMemberDayStatIDs(ids...)
+	return _u
+}
+
+// AddMemberDayStats adds the "member_day_stats" edges to the MemberDayStat entity.
+func (_u *SnapshotUpdateOne) AddMemberDayStats(v ...*MemberDayStat) *SnapshotUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddMemberDayStatIDs(ids...)
+}
+
 // AddMemberRepoStatIDs adds the "member_repo_stats" edge to the MemberRepoStat entity by IDs.
 func (_u *SnapshotUpdateOne) AddMemberRepoStatIDs(ids ...int) *SnapshotUpdateOne {
 	_u.mutation.AddMemberRepoStatIDs(ids...)
@@ -424,6 +521,27 @@ func (_u *SnapshotUpdateOne) RemoveMemberYearStats(v ...*MemberYearStat) *Snapsh
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMemberYearStatIDs(ids...)
+}
+
+// ClearMemberDayStats clears all "member_day_stats" edges to the MemberDayStat entity.
+func (_u *SnapshotUpdateOne) ClearMemberDayStats() *SnapshotUpdateOne {
+	_u.mutation.ClearMemberDayStats()
+	return _u
+}
+
+// RemoveMemberDayStatIDs removes the "member_day_stats" edge to MemberDayStat entities by IDs.
+func (_u *SnapshotUpdateOne) RemoveMemberDayStatIDs(ids ...int) *SnapshotUpdateOne {
+	_u.mutation.RemoveMemberDayStatIDs(ids...)
+	return _u
+}
+
+// RemoveMemberDayStats removes "member_day_stats" edges to MemberDayStat entities.
+func (_u *SnapshotUpdateOne) RemoveMemberDayStats(v ...*MemberDayStat) *SnapshotUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveMemberDayStatIDs(ids...)
 }
 
 // ClearMemberRepoStats clears all "member_repo_stats" edges to the MemberRepoStat entity.
@@ -596,6 +714,51 @@ func (_u *SnapshotUpdateOne) sqlSave(ctx context.Context) (_node *Snapshot, err 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(memberyearstat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.MemberDayStatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberDayStatsTable,
+			Columns: []string{snapshot.MemberDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberdaystat.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedMemberDayStatsIDs(); len(nodes) > 0 && !_u.mutation.MemberDayStatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberDayStatsTable,
+			Columns: []string{snapshot.MemberDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberdaystat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.MemberDayStatsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberDayStatsTable,
+			Columns: []string{snapshot.MemberDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberdaystat.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

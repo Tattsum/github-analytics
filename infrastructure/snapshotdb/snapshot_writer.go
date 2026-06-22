@@ -73,9 +73,9 @@ func (w *SnapshotWriter) saveTx(ctx context.Context, tx *ent.Tx, snapshot *appli
 		return fmt.Errorf("create snapshot row: %w", err)
 	}
 
-	memberStats, yearStats, repoStats := buildStatCreates(snapshot)
+	memberStats, yearStats, dayStats, repoStats := buildStatCreates(snapshot)
 
-	if err := applyStatCreates(ctx, tx, snapRow.ID, memberStats, yearStats, repoStats); err != nil {
+	if err := applyStatCreates(ctx, tx, snapRow.ID, memberStats, yearStats, dayStats, repoStats); err != nil {
 		return err
 	}
 
@@ -111,6 +111,19 @@ type memberYearStatInput struct {
 	deletions   int
 }
 
+// memberDayStatInput captures the fields of one MemberDayStat row.
+type memberDayStatInput struct {
+	login       string
+	day         string
+	commitCount int
+	prCreated   int
+	prMerged    int
+	issueCount  int
+	reviewCount int
+	additions   int
+	deletions   int
+}
+
 // memberRepoStatInput captures the fields of one MemberRepoStat row.
 type memberRepoStatInput struct {
 	login         string
@@ -127,9 +140,10 @@ type memberRepoStatInput struct {
 // buildStatCreates maps the aggregated per-member statistics into the flat
 // row inputs persisted for a snapshot. It is pure (no I/O) so it can be unit
 // tested without a database.
-func buildStatCreates(snapshot *application.Snapshot) ([]memberStatInput, []memberYearStatInput, []memberRepoStatInput) {
+func buildStatCreates(snapshot *application.Snapshot) ([]memberStatInput, []memberYearStatInput, []memberDayStatInput, []memberRepoStatInput) {
 	memberStats := make([]memberStatInput, 0, len(snapshot.Members))
 	yearStats := make([]memberYearStatInput, 0)
+	dayStats := make([]memberDayStatInput, 0)
 	repoStats := make([]memberRepoStatInput, 0)
 
 	for _, member := range snapshot.Members {
@@ -155,10 +169,11 @@ func buildStatCreates(snapshot *application.Snapshot) ([]memberStatInput, []memb
 		})
 
 		yearStats = append(yearStats, buildYearStats(login, member.YearlyStats)...)
+		dayStats = append(dayStats, buildDayStats(login, member.DailyStats)...)
 		repoStats = append(repoStats, buildRepoStats(login, member.AllRepositories)...)
 	}
 
-	return memberStats, yearStats, repoStats
+	return memberStats, yearStats, dayStats, repoStats
 }
 
 // buildYearStats maps a member's yearly statistics into row inputs.
@@ -173,6 +188,31 @@ func buildYearStats(login string, yearly map[int]*domain.YearlyStatistics) []mem
 		out = append(out, memberYearStatInput{
 			login:       login,
 			year:        year,
+			commitCount: stat.CommitCount,
+			prCreated:   stat.PRCreated,
+			prMerged:    stat.PRMerged,
+			issueCount:  stat.IssueCount,
+			reviewCount: stat.ReviewCount,
+			additions:   stat.TotalAdditions,
+			deletions:   stat.TotalDeletions,
+		})
+	}
+
+	return out
+}
+
+// buildDayStats maps a member's daily statistics into row inputs.
+func buildDayStats(login string, daily map[string]*domain.DailyStatistics) []memberDayStatInput {
+	out := make([]memberDayStatInput, 0, len(daily))
+
+	for day, stat := range daily {
+		if stat == nil {
+			continue
+		}
+
+		out = append(out, memberDayStatInput{
+			login:       login,
+			day:         day,
 			commitCount: stat.CommitCount,
 			prCreated:   stat.PRCreated,
 			prMerged:    stat.PRMerged,
@@ -221,6 +261,7 @@ func applyStatCreates(
 	snapshotID int,
 	memberStats []memberStatInput,
 	yearStats []memberYearStatInput,
+	dayStats []memberDayStatInput,
 	repoStats []memberRepoStatInput,
 ) error {
 	if len(memberStats) > 0 {
@@ -261,6 +302,25 @@ func applyStatCreates(
 		}).Save(ctx)
 		if err != nil {
 			return fmt.Errorf("create member year stats: %w", err)
+		}
+	}
+
+	if len(dayStats) > 0 {
+		_, err := tx.MemberDayStat.MapCreateBulk(dayStats, func(c *ent.MemberDayStatCreate, i int) {
+			d := dayStats[i]
+			c.SetSnapshotID(snapshotID).
+				SetLogin(d.login).
+				SetDay(d.day).
+				SetCommitCount(d.commitCount).
+				SetPrCreated(d.prCreated).
+				SetPrMerged(d.prMerged).
+				SetIssueCount(d.issueCount).
+				SetReviewCount(d.reviewCount).
+				SetAdditions(d.additions).
+				SetDeletions(d.deletions)
+		}).Save(ctx)
+		if err != nil {
+			return fmt.Errorf("create member day stats: %w", err)
 		}
 	}
 

@@ -128,6 +128,9 @@ format-json-yaml: format-json format-yaml ## JSONとYAMLファイルをフォー
 fmt: ## コードをフォーマット
 	@echo "Formatting code..."
 	@go fmt ./...
+	@echo "Applying go fix modernizations (run twice to reach a fixed point)..."
+	@go fix ./...
+	@go fix ./...
 	@golangci-lint fmt
 	@golangci-lint run --fix || true
 	@echo "Formatting Markdown files..."

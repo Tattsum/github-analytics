@@ -77,6 +77,9 @@ type SnapshotReader interface {
 	Member(ctx context.Context, login string) (*domain.UserStatistics, error)
 	// TeamSummary はチーム全体の合計・集計値を返します.
 	TeamSummary(ctx context.Context) (*TeamSummary, error)
+	// TeamDailyStats はチーム全体の日別合計を、日付昇順の時系列で返します.
+	// メンバー横断で同一日の指標を合算したもので、期間絞り込み・推移グラフのデータ源です.
+	TeamDailyStats(ctx context.Context) ([]*domain.DailyStatistics, error)
 	// Repositories はリポジトリ軸の横断集計を返します.
 	Repositories(ctx context.Context) ([]*RepositoryStats, error)
 	// Repository は指定リポジトリの集計を返します.

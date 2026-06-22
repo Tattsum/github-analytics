@@ -198,6 +198,60 @@ func TestStatisticsService_CalculateStatistics_YearlyStats(t *testing.T) {
 	assert.Equal(t, 1, stats.YearlyStats[2021].CommitCount, "YearlyStats[2021].CommitCount should be 1")
 }
 
+func TestStatisticsService_CalculateStatistics_DailyStats(t *testing.T) {
+	t.Parallel()
+
+	service := NewStatisticsService()
+	data := &infrastructure.UserActivityData{
+		User: domain.NewUser("testuser", "Test User", "2024-01-01T00:00:00Z"),
+		Commits: []*domain.Activity{
+			domain.NewActivity(domain.ActivityTypeCommit, "owner/repo", time.Date(2024, 1, 8, 9, 0, 0, 0, time.UTC), 30, 10),
+			domain.NewActivity(domain.ActivityTypeCommit, "owner/repo", time.Date(2024, 1, 8, 18, 0, 0, 0, time.UTC), 20, 5),
+			domain.NewActivity(domain.ActivityTypeCommit, "owner/repo", time.Date(2024, 1, 9, 12, 0, 0, 0, time.UTC), 40, 15),
+		},
+		PRs: []*domain.Activity{
+			domain.NewActivity(domain.ActivityTypePR, "owner/repo", time.Date(2024, 1, 8, 10, 0, 0, 0, time.UTC), 0, 0),
+		},
+		Issues:  []*domain.Activity{},
+		Reviews: []*domain.Activity{},
+	}
+
+	stats, err := service.CalculateStatistics(data)
+	require.NoError(t, err, "CalculateStatistics() should not return error")
+
+	require.Len(t, stats.DailyStats, 2, "DailyStats should have one entry per active day")
+	assert.Equal(t, 2, stats.DailyStats["2024-01-08"].CommitCount, "same-day commits are summed")
+	assert.Equal(t, 1, stats.DailyStats["2024-01-08"].PRCreated, "PR is counted on its day")
+	assert.Equal(t, 50, stats.DailyStats["2024-01-08"].TotalAdditions, "additions are summed per day")
+	assert.Equal(t, 1, stats.DailyStats["2024-01-09"].CommitCount, "next-day commit is its own bucket")
+}
+
+func TestStatisticsService_CalculateStatistics_DailyStats_UTCBoundary(t *testing.T) {
+	t.Parallel()
+
+	jst := time.FixedZone("JST", 9*60*60)
+	service := NewStatisticsService()
+	data := &infrastructure.UserActivityData{
+		User: domain.NewUser("testuser", "Test User", "2024-01-01T00:00:00Z"),
+		Commits: []*domain.Activity{
+			// 2024-01-02 00:30 JST == 2024-01-01 15:30 UTC -> bucket 2024-01-01.
+			domain.NewActivity(domain.ActivityTypeCommit, "owner/repo", time.Date(2024, 1, 2, 0, 30, 0, 0, jst), 10, 5),
+			// 2024-01-02 09:30 JST == 2024-01-02 00:30 UTC -> bucket 2024-01-02.
+			domain.NewActivity(domain.ActivityTypeCommit, "owner/repo", time.Date(2024, 1, 2, 9, 30, 0, 0, jst), 20, 5),
+		},
+		PRs:     []*domain.Activity{},
+		Issues:  []*domain.Activity{},
+		Reviews: []*domain.Activity{},
+	}
+
+	stats, err := service.CalculateStatistics(data)
+	require.NoError(t, err, "CalculateStatistics() should not return error")
+
+	require.Len(t, stats.DailyStats, 2, "buckets are split on the UTC day boundary")
+	assert.Equal(t, 1, stats.DailyStats["2024-01-01"].CommitCount, "late-JST commit falls into the previous UTC day")
+	assert.Equal(t, 1, stats.DailyStats["2024-01-02"].CommitCount, "morning-JST commit stays on the UTC day")
+}
+
 func TestStatisticsService_CalculateStatistics_TopRepositories(t *testing.T) {
 	t.Parallel()
 

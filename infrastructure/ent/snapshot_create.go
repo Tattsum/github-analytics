@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
@@ -65,6 +66,21 @@ func (_c *SnapshotCreate) AddMemberYearStats(v ...*MemberYearStat) *SnapshotCrea
 		ids[i] = v[i].ID
 	}
 	return _c.AddMemberYearStatIDs(ids...)
+}
+
+// AddMemberDayStatIDs adds the "member_day_stats" edge to the MemberDayStat entity by IDs.
+func (_c *SnapshotCreate) AddMemberDayStatIDs(ids ...int) *SnapshotCreate {
+	_c.mutation.AddMemberDayStatIDs(ids...)
+	return _c
+}
+
+// AddMemberDayStats adds the "member_day_stats" edges to the MemberDayStat entity.
+func (_c *SnapshotCreate) AddMemberDayStats(v ...*MemberDayStat) *SnapshotCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddMemberDayStatIDs(ids...)
 }
 
 // AddMemberRepoStatIDs adds the "member_repo_stats" edge to the MemberRepoStat entity by IDs.
@@ -183,6 +199,22 @@ func (_c *SnapshotCreate) createSpec() (*Snapshot, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(memberyearstat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.MemberDayStatsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberDayStatsTable,
+			Columns: []string{snapshot.MemberDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberdaystat.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
