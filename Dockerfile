@@ -27,5 +27,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /out/server ./cmd/server
 FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /
 COPY --from=backend /out/server /server
-EXPOSE 8080
+EXPOSE 8090
 ENTRYPOINT ["/server"]

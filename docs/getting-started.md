@@ -27,7 +27,7 @@ make web-install   # = cd frontend && pnpm install
 | `DATABASE_URL` | Postgres 接続文字列。compose 内では host が `postgres`、ホストからは `localhost` |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` / `POSTGRES_PORT` | compose の Postgres サービス設定 |
 | `APP_PORT` | アプリの公開ポート（compose） |
-| `PORT` | Web サーバのリッスンポート（既定 8080） |
+| `PORT` | Web サーバのリッスンポート（既定 8090） |
 | `ENV` | `development` / `dev` のとき `GET /playground` を公開。本番は未公開 |
 
 ```bash

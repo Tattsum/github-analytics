@@ -30,7 +30,7 @@ make db-up
 export $(grep -v '^#' .env | xargs)
 make batch ARGS="-users user1,user2"
 
-# 4. Web サーバを起動（既定 :8080）
+# 4. Web サーバを起動（既定 :8090）
 make serve
 ```
 

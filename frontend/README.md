@@ -8,7 +8,7 @@ React + Vite SPA for the GitHub team analytics web app.
   and generates `src/gql/`. Use documents via `graphql(\`...\`)` + `useQuery`.
 - Charts: Recharts (wrapped by `src/components/BarChart.tsx`)
 - Build output: `frontend/dist` (embedded by the Go binary for same-origin serving)
-- Dev: `pnpm dev` runs Vite, which proxies `/query` to the Go server on :8080
+- Dev: `pnpm dev` runs Vite, which proxies `/query` to the Go server on :8090
 
 ## Scripts
 
