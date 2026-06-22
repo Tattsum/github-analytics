@@ -16,9 +16,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepodaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/repometa"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/snapshot"
 )
 
@@ -29,12 +31,16 @@ type Client struct {
 	Schema *migrate.Schema
 	// MemberDayStat is the client for interacting with the MemberDayStat builders.
 	MemberDayStat *MemberDayStatClient
+	// MemberRepoDayStat is the client for interacting with the MemberRepoDayStat builders.
+	MemberRepoDayStat *MemberRepoDayStatClient
 	// MemberRepoStat is the client for interacting with the MemberRepoStat builders.
 	MemberRepoStat *MemberRepoStatClient
 	// MemberStat is the client for interacting with the MemberStat builders.
 	MemberStat *MemberStatClient
 	// MemberYearStat is the client for interacting with the MemberYearStat builders.
 	MemberYearStat *MemberYearStatClient
+	// RepoMeta is the client for interacting with the RepoMeta builders.
+	RepoMeta *RepoMetaClient
 	// Snapshot is the client for interacting with the Snapshot builders.
 	Snapshot *SnapshotClient
 }
@@ -49,9 +55,11 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.MemberDayStat = NewMemberDayStatClient(c.config)
+	c.MemberRepoDayStat = NewMemberRepoDayStatClient(c.config)
 	c.MemberRepoStat = NewMemberRepoStatClient(c.config)
 	c.MemberStat = NewMemberStatClient(c.config)
 	c.MemberYearStat = NewMemberYearStatClient(c.config)
+	c.RepoMeta = NewRepoMetaClient(c.config)
 	c.Snapshot = NewSnapshotClient(c.config)
 }
 
@@ -143,13 +151,15 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:            ctx,
-		config:         cfg,
-		MemberDayStat:  NewMemberDayStatClient(cfg),
-		MemberRepoStat: NewMemberRepoStatClient(cfg),
-		MemberStat:     NewMemberStatClient(cfg),
-		MemberYearStat: NewMemberYearStatClient(cfg),
-		Snapshot:       NewSnapshotClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		MemberDayStat:     NewMemberDayStatClient(cfg),
+		MemberRepoDayStat: NewMemberRepoDayStatClient(cfg),
+		MemberRepoStat:    NewMemberRepoStatClient(cfg),
+		MemberStat:        NewMemberStatClient(cfg),
+		MemberYearStat:    NewMemberYearStatClient(cfg),
+		RepoMeta:          NewRepoMetaClient(cfg),
+		Snapshot:          NewSnapshotClient(cfg),
 	}, nil
 }
 
@@ -167,13 +177,15 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:            ctx,
-		config:         cfg,
-		MemberDayStat:  NewMemberDayStatClient(cfg),
-		MemberRepoStat: NewMemberRepoStatClient(cfg),
-		MemberStat:     NewMemberStatClient(cfg),
-		MemberYearStat: NewMemberYearStatClient(cfg),
-		Snapshot:       NewSnapshotClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		MemberDayStat:     NewMemberDayStatClient(cfg),
+		MemberRepoDayStat: NewMemberRepoDayStatClient(cfg),
+		MemberRepoStat:    NewMemberRepoStatClient(cfg),
+		MemberStat:        NewMemberStatClient(cfg),
+		MemberYearStat:    NewMemberYearStatClient(cfg),
+		RepoMeta:          NewRepoMetaClient(cfg),
+		Snapshot:          NewSnapshotClient(cfg),
 	}, nil
 }
 
@@ -202,21 +214,23 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.MemberDayStat.Use(hooks...)
-	c.MemberRepoStat.Use(hooks...)
-	c.MemberStat.Use(hooks...)
-	c.MemberYearStat.Use(hooks...)
-	c.Snapshot.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.MemberDayStat, c.MemberRepoDayStat, c.MemberRepoStat, c.MemberStat,
+		c.MemberYearStat, c.RepoMeta, c.Snapshot,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.MemberDayStat.Intercept(interceptors...)
-	c.MemberRepoStat.Intercept(interceptors...)
-	c.MemberStat.Intercept(interceptors...)
-	c.MemberYearStat.Intercept(interceptors...)
-	c.Snapshot.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.MemberDayStat, c.MemberRepoDayStat, c.MemberRepoStat, c.MemberStat,
+		c.MemberYearStat, c.RepoMeta, c.Snapshot,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -224,12 +238,16 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *MemberDayStatMutation:
 		return c.MemberDayStat.mutate(ctx, m)
+	case *MemberRepoDayStatMutation:
+		return c.MemberRepoDayStat.mutate(ctx, m)
 	case *MemberRepoStatMutation:
 		return c.MemberRepoStat.mutate(ctx, m)
 	case *MemberStatMutation:
 		return c.MemberStat.mutate(ctx, m)
 	case *MemberYearStatMutation:
 		return c.MemberYearStat.mutate(ctx, m)
+	case *RepoMetaMutation:
+		return c.RepoMeta.mutate(ctx, m)
 	case *SnapshotMutation:
 		return c.Snapshot.mutate(ctx, m)
 	default:
@@ -383,6 +401,155 @@ func (c *MemberDayStatClient) mutate(ctx context.Context, m *MemberDayStatMutati
 		return (&MemberDayStatDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown MemberDayStat mutation op: %q", m.Op())
+	}
+}
+
+// MemberRepoDayStatClient is a client for the MemberRepoDayStat schema.
+type MemberRepoDayStatClient struct {
+	config
+}
+
+// NewMemberRepoDayStatClient returns a client for the MemberRepoDayStat from the given config.
+func NewMemberRepoDayStatClient(c config) *MemberRepoDayStatClient {
+	return &MemberRepoDayStatClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `memberrepodaystat.Hooks(f(g(h())))`.
+func (c *MemberRepoDayStatClient) Use(hooks ...Hook) {
+	c.hooks.MemberRepoDayStat = append(c.hooks.MemberRepoDayStat, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `memberrepodaystat.Intercept(f(g(h())))`.
+func (c *MemberRepoDayStatClient) Intercept(interceptors ...Interceptor) {
+	c.inters.MemberRepoDayStat = append(c.inters.MemberRepoDayStat, interceptors...)
+}
+
+// Create returns a builder for creating a MemberRepoDayStat entity.
+func (c *MemberRepoDayStatClient) Create() *MemberRepoDayStatCreate {
+	mutation := newMemberRepoDayStatMutation(c.config, OpCreate)
+	return &MemberRepoDayStatCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of MemberRepoDayStat entities.
+func (c *MemberRepoDayStatClient) CreateBulk(builders ...*MemberRepoDayStatCreate) *MemberRepoDayStatCreateBulk {
+	return &MemberRepoDayStatCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MemberRepoDayStatClient) MapCreateBulk(slice any, setFunc func(*MemberRepoDayStatCreate, int)) *MemberRepoDayStatCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MemberRepoDayStatCreateBulk{err: fmt.Errorf("calling to MemberRepoDayStatClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MemberRepoDayStatCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MemberRepoDayStatCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for MemberRepoDayStat.
+func (c *MemberRepoDayStatClient) Update() *MemberRepoDayStatUpdate {
+	mutation := newMemberRepoDayStatMutation(c.config, OpUpdate)
+	return &MemberRepoDayStatUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MemberRepoDayStatClient) UpdateOne(_m *MemberRepoDayStat) *MemberRepoDayStatUpdateOne {
+	mutation := newMemberRepoDayStatMutation(c.config, OpUpdateOne, withMemberRepoDayStat(_m))
+	return &MemberRepoDayStatUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MemberRepoDayStatClient) UpdateOneID(id int) *MemberRepoDayStatUpdateOne {
+	mutation := newMemberRepoDayStatMutation(c.config, OpUpdateOne, withMemberRepoDayStatID(id))
+	return &MemberRepoDayStatUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for MemberRepoDayStat.
+func (c *MemberRepoDayStatClient) Delete() *MemberRepoDayStatDelete {
+	mutation := newMemberRepoDayStatMutation(c.config, OpDelete)
+	return &MemberRepoDayStatDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MemberRepoDayStatClient) DeleteOne(_m *MemberRepoDayStat) *MemberRepoDayStatDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MemberRepoDayStatClient) DeleteOneID(id int) *MemberRepoDayStatDeleteOne {
+	builder := c.Delete().Where(memberrepodaystat.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MemberRepoDayStatDeleteOne{builder}
+}
+
+// Query returns a query builder for MemberRepoDayStat.
+func (c *MemberRepoDayStatClient) Query() *MemberRepoDayStatQuery {
+	return &MemberRepoDayStatQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMemberRepoDayStat},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a MemberRepoDayStat entity by its id.
+func (c *MemberRepoDayStatClient) Get(ctx context.Context, id int) (*MemberRepoDayStat, error) {
+	return c.Query().Where(memberrepodaystat.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MemberRepoDayStatClient) GetX(ctx context.Context, id int) *MemberRepoDayStat {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySnapshot queries the snapshot edge of a MemberRepoDayStat.
+func (c *MemberRepoDayStatClient) QuerySnapshot(_m *MemberRepoDayStat) *SnapshotQuery {
+	query := (&SnapshotClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(memberrepodaystat.Table, memberrepodaystat.FieldID, id),
+			sqlgraph.To(snapshot.Table, snapshot.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, memberrepodaystat.SnapshotTable, memberrepodaystat.SnapshotColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *MemberRepoDayStatClient) Hooks() []Hook {
+	return c.hooks.MemberRepoDayStat
+}
+
+// Interceptors returns the client interceptors.
+func (c *MemberRepoDayStatClient) Interceptors() []Interceptor {
+	return c.inters.MemberRepoDayStat
+}
+
+func (c *MemberRepoDayStatClient) mutate(ctx context.Context, m *MemberRepoDayStatMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MemberRepoDayStatCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MemberRepoDayStatUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MemberRepoDayStatUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MemberRepoDayStatDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown MemberRepoDayStat mutation op: %q", m.Op())
 	}
 }
 
@@ -833,6 +1000,155 @@ func (c *MemberYearStatClient) mutate(ctx context.Context, m *MemberYearStatMuta
 	}
 }
 
+// RepoMetaClient is a client for the RepoMeta schema.
+type RepoMetaClient struct {
+	config
+}
+
+// NewRepoMetaClient returns a client for the RepoMeta from the given config.
+func NewRepoMetaClient(c config) *RepoMetaClient {
+	return &RepoMetaClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `repometa.Hooks(f(g(h())))`.
+func (c *RepoMetaClient) Use(hooks ...Hook) {
+	c.hooks.RepoMeta = append(c.hooks.RepoMeta, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `repometa.Intercept(f(g(h())))`.
+func (c *RepoMetaClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RepoMeta = append(c.inters.RepoMeta, interceptors...)
+}
+
+// Create returns a builder for creating a RepoMeta entity.
+func (c *RepoMetaClient) Create() *RepoMetaCreate {
+	mutation := newRepoMetaMutation(c.config, OpCreate)
+	return &RepoMetaCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RepoMeta entities.
+func (c *RepoMetaClient) CreateBulk(builders ...*RepoMetaCreate) *RepoMetaCreateBulk {
+	return &RepoMetaCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RepoMetaClient) MapCreateBulk(slice any, setFunc func(*RepoMetaCreate, int)) *RepoMetaCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RepoMetaCreateBulk{err: fmt.Errorf("calling to RepoMetaClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RepoMetaCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RepoMetaCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RepoMeta.
+func (c *RepoMetaClient) Update() *RepoMetaUpdate {
+	mutation := newRepoMetaMutation(c.config, OpUpdate)
+	return &RepoMetaUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RepoMetaClient) UpdateOne(_m *RepoMeta) *RepoMetaUpdateOne {
+	mutation := newRepoMetaMutation(c.config, OpUpdateOne, withRepoMeta(_m))
+	return &RepoMetaUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RepoMetaClient) UpdateOneID(id int) *RepoMetaUpdateOne {
+	mutation := newRepoMetaMutation(c.config, OpUpdateOne, withRepoMetaID(id))
+	return &RepoMetaUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RepoMeta.
+func (c *RepoMetaClient) Delete() *RepoMetaDelete {
+	mutation := newRepoMetaMutation(c.config, OpDelete)
+	return &RepoMetaDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RepoMetaClient) DeleteOne(_m *RepoMeta) *RepoMetaDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RepoMetaClient) DeleteOneID(id int) *RepoMetaDeleteOne {
+	builder := c.Delete().Where(repometa.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RepoMetaDeleteOne{builder}
+}
+
+// Query returns a query builder for RepoMeta.
+func (c *RepoMetaClient) Query() *RepoMetaQuery {
+	return &RepoMetaQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRepoMeta},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RepoMeta entity by its id.
+func (c *RepoMetaClient) Get(ctx context.Context, id int) (*RepoMeta, error) {
+	return c.Query().Where(repometa.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RepoMetaClient) GetX(ctx context.Context, id int) *RepoMeta {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySnapshot queries the snapshot edge of a RepoMeta.
+func (c *RepoMetaClient) QuerySnapshot(_m *RepoMeta) *SnapshotQuery {
+	query := (&SnapshotClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(repometa.Table, repometa.FieldID, id),
+			sqlgraph.To(snapshot.Table, snapshot.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, repometa.SnapshotTable, repometa.SnapshotColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *RepoMetaClient) Hooks() []Hook {
+	return c.hooks.RepoMeta
+}
+
+// Interceptors returns the client interceptors.
+func (c *RepoMetaClient) Interceptors() []Interceptor {
+	return c.inters.RepoMeta
+}
+
+func (c *RepoMetaClient) mutate(ctx context.Context, m *RepoMetaMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RepoMetaCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RepoMetaUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RepoMetaUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RepoMetaDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RepoMeta mutation op: %q", m.Op())
+	}
+}
+
 // SnapshotClient is a client for the Snapshot schema.
 type SnapshotClient struct {
 	config
@@ -1005,6 +1321,38 @@ func (c *SnapshotClient) QueryMemberRepoStats(_m *Snapshot) *MemberRepoStatQuery
 	return query
 }
 
+// QueryMemberRepoDayStats queries the member_repo_day_stats edge of a Snapshot.
+func (c *SnapshotClient) QueryMemberRepoDayStats(_m *Snapshot) *MemberRepoDayStatQuery {
+	query := (&MemberRepoDayStatClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(snapshot.Table, snapshot.FieldID, id),
+			sqlgraph.To(memberrepodaystat.Table, memberrepodaystat.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, snapshot.MemberRepoDayStatsTable, snapshot.MemberRepoDayStatsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRepoMetas queries the repo_metas edge of a Snapshot.
+func (c *SnapshotClient) QueryRepoMetas(_m *Snapshot) *RepoMetaQuery {
+	query := (&RepoMetaClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(snapshot.Table, snapshot.FieldID, id),
+			sqlgraph.To(repometa.Table, repometa.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, snapshot.RepoMetasTable, snapshot.RepoMetasColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *SnapshotClient) Hooks() []Hook {
 	return c.hooks.Snapshot
@@ -1033,10 +1381,11 @@ func (c *SnapshotClient) mutate(ctx context.Context, m *SnapshotMutation) (Value
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		MemberDayStat, MemberRepoStat, MemberStat, MemberYearStat, Snapshot []ent.Hook
+		MemberDayStat, MemberRepoDayStat, MemberRepoStat, MemberStat, MemberYearStat,
+		RepoMeta, Snapshot []ent.Hook
 	}
 	inters struct {
-		MemberDayStat, MemberRepoStat, MemberStat, MemberYearStat,
-		Snapshot []ent.Interceptor
+		MemberDayStat, MemberRepoDayStat, MemberRepoStat, MemberStat, MemberYearStat,
+		RepoMeta, Snapshot []ent.Interceptor
 	}
 )

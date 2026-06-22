@@ -21,6 +21,18 @@ func (f MemberDayStatFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MemberDayStatMutation", m)
 }
 
+// The MemberRepoDayStatFunc type is an adapter to allow the use of ordinary
+// function as MemberRepoDayStat mutator.
+type MemberRepoDayStatFunc func(context.Context, *ent.MemberRepoDayStatMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MemberRepoDayStatFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MemberRepoDayStatMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MemberRepoDayStatMutation", m)
+}
+
 // The MemberRepoStatFunc type is an adapter to allow the use of ordinary
 // function as MemberRepoStat mutator.
 type MemberRepoStatFunc func(context.Context, *ent.MemberRepoStatMutation) (ent.Value, error)
@@ -55,6 +67,18 @@ func (f MemberYearStatFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MemberYearStatMutation", m)
+}
+
+// The RepoMetaFunc type is an adapter to allow the use of ordinary
+// function as RepoMeta mutator.
+type RepoMetaFunc func(context.Context, *ent.RepoMetaMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RepoMetaFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RepoMetaMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RepoMetaMutation", m)
 }
 
 // The SnapshotFunc type is an adapter to allow the use of ordinary

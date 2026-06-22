@@ -11,10 +11,12 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepodaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/predicate"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/repometa"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/snapshot"
 )
 
@@ -89,6 +91,36 @@ func (_u *SnapshotUpdate) AddMemberRepoStats(v ...*MemberRepoStat) *SnapshotUpda
 		ids[i] = v[i].ID
 	}
 	return _u.AddMemberRepoStatIDs(ids...)
+}
+
+// AddMemberRepoDayStatIDs adds the "member_repo_day_stats" edge to the MemberRepoDayStat entity by IDs.
+func (_u *SnapshotUpdate) AddMemberRepoDayStatIDs(ids ...int) *SnapshotUpdate {
+	_u.mutation.AddMemberRepoDayStatIDs(ids...)
+	return _u
+}
+
+// AddMemberRepoDayStats adds the "member_repo_day_stats" edges to the MemberRepoDayStat entity.
+func (_u *SnapshotUpdate) AddMemberRepoDayStats(v ...*MemberRepoDayStat) *SnapshotUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddMemberRepoDayStatIDs(ids...)
+}
+
+// AddRepoMetaIDs adds the "repo_metas" edge to the RepoMeta entity by IDs.
+func (_u *SnapshotUpdate) AddRepoMetaIDs(ids ...int) *SnapshotUpdate {
+	_u.mutation.AddRepoMetaIDs(ids...)
+	return _u
+}
+
+// AddRepoMetas adds the "repo_metas" edges to the RepoMeta entity.
+func (_u *SnapshotUpdate) AddRepoMetas(v ...*RepoMeta) *SnapshotUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRepoMetaIDs(ids...)
 }
 
 // Mutation returns the SnapshotMutation object of the builder.
@@ -178,6 +210,48 @@ func (_u *SnapshotUpdate) RemoveMemberRepoStats(v ...*MemberRepoStat) *SnapshotU
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMemberRepoStatIDs(ids...)
+}
+
+// ClearMemberRepoDayStats clears all "member_repo_day_stats" edges to the MemberRepoDayStat entity.
+func (_u *SnapshotUpdate) ClearMemberRepoDayStats() *SnapshotUpdate {
+	_u.mutation.ClearMemberRepoDayStats()
+	return _u
+}
+
+// RemoveMemberRepoDayStatIDs removes the "member_repo_day_stats" edge to MemberRepoDayStat entities by IDs.
+func (_u *SnapshotUpdate) RemoveMemberRepoDayStatIDs(ids ...int) *SnapshotUpdate {
+	_u.mutation.RemoveMemberRepoDayStatIDs(ids...)
+	return _u
+}
+
+// RemoveMemberRepoDayStats removes "member_repo_day_stats" edges to MemberRepoDayStat entities.
+func (_u *SnapshotUpdate) RemoveMemberRepoDayStats(v ...*MemberRepoDayStat) *SnapshotUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveMemberRepoDayStatIDs(ids...)
+}
+
+// ClearRepoMetas clears all "repo_metas" edges to the RepoMeta entity.
+func (_u *SnapshotUpdate) ClearRepoMetas() *SnapshotUpdate {
+	_u.mutation.ClearRepoMetas()
+	return _u
+}
+
+// RemoveRepoMetaIDs removes the "repo_metas" edge to RepoMeta entities by IDs.
+func (_u *SnapshotUpdate) RemoveRepoMetaIDs(ids ...int) *SnapshotUpdate {
+	_u.mutation.RemoveRepoMetaIDs(ids...)
+	return _u
+}
+
+// RemoveRepoMetas removes "repo_metas" edges to RepoMeta entities.
+func (_u *SnapshotUpdate) RemoveRepoMetas(v ...*RepoMeta) *SnapshotUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRepoMetaIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -396,6 +470,96 @@ func (_u *SnapshotUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.MemberRepoDayStatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberRepoDayStatsTable,
+			Columns: []string{snapshot.MemberRepoDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberrepodaystat.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedMemberRepoDayStatsIDs(); len(nodes) > 0 && !_u.mutation.MemberRepoDayStatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberRepoDayStatsTable,
+			Columns: []string{snapshot.MemberRepoDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberrepodaystat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.MemberRepoDayStatsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberRepoDayStatsTable,
+			Columns: []string{snapshot.MemberRepoDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberrepodaystat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RepoMetasCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.RepoMetasTable,
+			Columns: []string{snapshot.RepoMetasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(repometa.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRepoMetasIDs(); len(nodes) > 0 && !_u.mutation.RepoMetasCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.RepoMetasTable,
+			Columns: []string{snapshot.RepoMetasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(repometa.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RepoMetasIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.RepoMetasTable,
+			Columns: []string{snapshot.RepoMetasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(repometa.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{snapshot.Label}
@@ -474,6 +638,36 @@ func (_u *SnapshotUpdateOne) AddMemberRepoStats(v ...*MemberRepoStat) *SnapshotU
 		ids[i] = v[i].ID
 	}
 	return _u.AddMemberRepoStatIDs(ids...)
+}
+
+// AddMemberRepoDayStatIDs adds the "member_repo_day_stats" edge to the MemberRepoDayStat entity by IDs.
+func (_u *SnapshotUpdateOne) AddMemberRepoDayStatIDs(ids ...int) *SnapshotUpdateOne {
+	_u.mutation.AddMemberRepoDayStatIDs(ids...)
+	return _u
+}
+
+// AddMemberRepoDayStats adds the "member_repo_day_stats" edges to the MemberRepoDayStat entity.
+func (_u *SnapshotUpdateOne) AddMemberRepoDayStats(v ...*MemberRepoDayStat) *SnapshotUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddMemberRepoDayStatIDs(ids...)
+}
+
+// AddRepoMetaIDs adds the "repo_metas" edge to the RepoMeta entity by IDs.
+func (_u *SnapshotUpdateOne) AddRepoMetaIDs(ids ...int) *SnapshotUpdateOne {
+	_u.mutation.AddRepoMetaIDs(ids...)
+	return _u
+}
+
+// AddRepoMetas adds the "repo_metas" edges to the RepoMeta entity.
+func (_u *SnapshotUpdateOne) AddRepoMetas(v ...*RepoMeta) *SnapshotUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRepoMetaIDs(ids...)
 }
 
 // Mutation returns the SnapshotMutation object of the builder.
@@ -563,6 +757,48 @@ func (_u *SnapshotUpdateOne) RemoveMemberRepoStats(v ...*MemberRepoStat) *Snapsh
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMemberRepoStatIDs(ids...)
+}
+
+// ClearMemberRepoDayStats clears all "member_repo_day_stats" edges to the MemberRepoDayStat entity.
+func (_u *SnapshotUpdateOne) ClearMemberRepoDayStats() *SnapshotUpdateOne {
+	_u.mutation.ClearMemberRepoDayStats()
+	return _u
+}
+
+// RemoveMemberRepoDayStatIDs removes the "member_repo_day_stats" edge to MemberRepoDayStat entities by IDs.
+func (_u *SnapshotUpdateOne) RemoveMemberRepoDayStatIDs(ids ...int) *SnapshotUpdateOne {
+	_u.mutation.RemoveMemberRepoDayStatIDs(ids...)
+	return _u
+}
+
+// RemoveMemberRepoDayStats removes "member_repo_day_stats" edges to MemberRepoDayStat entities.
+func (_u *SnapshotUpdateOne) RemoveMemberRepoDayStats(v ...*MemberRepoDayStat) *SnapshotUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveMemberRepoDayStatIDs(ids...)
+}
+
+// ClearRepoMetas clears all "repo_metas" edges to the RepoMeta entity.
+func (_u *SnapshotUpdateOne) ClearRepoMetas() *SnapshotUpdateOne {
+	_u.mutation.ClearRepoMetas()
+	return _u
+}
+
+// RemoveRepoMetaIDs removes the "repo_metas" edge to RepoMeta entities by IDs.
+func (_u *SnapshotUpdateOne) RemoveRepoMetaIDs(ids ...int) *SnapshotUpdateOne {
+	_u.mutation.RemoveRepoMetaIDs(ids...)
+	return _u
+}
+
+// RemoveRepoMetas removes "repo_metas" edges to RepoMeta entities.
+func (_u *SnapshotUpdateOne) RemoveRepoMetas(v ...*RepoMeta) *SnapshotUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRepoMetaIDs(ids...)
 }
 
 // Where appends a list predicates to the SnapshotUpdate builder.
@@ -804,6 +1040,96 @@ func (_u *SnapshotUpdateOne) sqlSave(ctx context.Context) (_node *Snapshot, err 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(memberrepostat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.MemberRepoDayStatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberRepoDayStatsTable,
+			Columns: []string{snapshot.MemberRepoDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberrepodaystat.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedMemberRepoDayStatsIDs(); len(nodes) > 0 && !_u.mutation.MemberRepoDayStatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberRepoDayStatsTable,
+			Columns: []string{snapshot.MemberRepoDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberrepodaystat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.MemberRepoDayStatsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.MemberRepoDayStatsTable,
+			Columns: []string{snapshot.MemberRepoDayStatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(memberrepodaystat.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RepoMetasCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.RepoMetasTable,
+			Columns: []string{snapshot.RepoMetasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(repometa.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRepoMetasIDs(); len(nodes) > 0 && !_u.mutation.RepoMetasCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.RepoMetasTable,
+			Columns: []string{snapshot.RepoMetasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(repometa.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RepoMetasIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   snapshot.RepoMetasTable,
+			Columns: []string{snapshot.RepoMetasColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(repometa.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

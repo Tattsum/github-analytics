@@ -13,24 +13,28 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepodaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/predicate"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/repometa"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/snapshot"
 )
 
 // SnapshotQuery is the builder for querying Snapshot entities.
 type SnapshotQuery struct {
 	config
-	ctx                 *QueryContext
-	order               []snapshot.OrderOption
-	inters              []Interceptor
-	predicates          []predicate.Snapshot
-	withMemberStats     *MemberStatQuery
-	withMemberYearStats *MemberYearStatQuery
-	withMemberDayStats  *MemberDayStatQuery
-	withMemberRepoStats *MemberRepoStatQuery
+	ctx                    *QueryContext
+	order                  []snapshot.OrderOption
+	inters                 []Interceptor
+	predicates             []predicate.Snapshot
+	withMemberStats        *MemberStatQuery
+	withMemberYearStats    *MemberYearStatQuery
+	withMemberDayStats     *MemberDayStatQuery
+	withMemberRepoStats    *MemberRepoStatQuery
+	withMemberRepoDayStats *MemberRepoDayStatQuery
+	withRepoMetas          *RepoMetaQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -148,6 +152,50 @@ func (_q *SnapshotQuery) QueryMemberRepoStats() *MemberRepoStatQuery {
 			sqlgraph.From(snapshot.Table, snapshot.FieldID, selector),
 			sqlgraph.To(memberrepostat.Table, memberrepostat.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, snapshot.MemberRepoStatsTable, snapshot.MemberRepoStatsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryMemberRepoDayStats chains the current query on the "member_repo_day_stats" edge.
+func (_q *SnapshotQuery) QueryMemberRepoDayStats() *MemberRepoDayStatQuery {
+	query := (&MemberRepoDayStatClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(snapshot.Table, snapshot.FieldID, selector),
+			sqlgraph.To(memberrepodaystat.Table, memberrepodaystat.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, snapshot.MemberRepoDayStatsTable, snapshot.MemberRepoDayStatsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRepoMetas chains the current query on the "repo_metas" edge.
+func (_q *SnapshotQuery) QueryRepoMetas() *RepoMetaQuery {
+	query := (&RepoMetaClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(snapshot.Table, snapshot.FieldID, selector),
+			sqlgraph.To(repometa.Table, repometa.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, snapshot.RepoMetasTable, snapshot.RepoMetasColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -342,15 +390,17 @@ func (_q *SnapshotQuery) Clone() *SnapshotQuery {
 		return nil
 	}
 	return &SnapshotQuery{
-		config:              _q.config,
-		ctx:                 _q.ctx.Clone(),
-		order:               append([]snapshot.OrderOption{}, _q.order...),
-		inters:              append([]Interceptor{}, _q.inters...),
-		predicates:          append([]predicate.Snapshot{}, _q.predicates...),
-		withMemberStats:     _q.withMemberStats.Clone(),
-		withMemberYearStats: _q.withMemberYearStats.Clone(),
-		withMemberDayStats:  _q.withMemberDayStats.Clone(),
-		withMemberRepoStats: _q.withMemberRepoStats.Clone(),
+		config:                 _q.config,
+		ctx:                    _q.ctx.Clone(),
+		order:                  append([]snapshot.OrderOption{}, _q.order...),
+		inters:                 append([]Interceptor{}, _q.inters...),
+		predicates:             append([]predicate.Snapshot{}, _q.predicates...),
+		withMemberStats:        _q.withMemberStats.Clone(),
+		withMemberYearStats:    _q.withMemberYearStats.Clone(),
+		withMemberDayStats:     _q.withMemberDayStats.Clone(),
+		withMemberRepoStats:    _q.withMemberRepoStats.Clone(),
+		withMemberRepoDayStats: _q.withMemberRepoDayStats.Clone(),
+		withRepoMetas:          _q.withRepoMetas.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -398,6 +448,28 @@ func (_q *SnapshotQuery) WithMemberRepoStats(opts ...func(*MemberRepoStatQuery))
 		opt(query)
 	}
 	_q.withMemberRepoStats = query
+	return _q
+}
+
+// WithMemberRepoDayStats tells the query-builder to eager-load the nodes that are connected to
+// the "member_repo_day_stats" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SnapshotQuery) WithMemberRepoDayStats(opts ...func(*MemberRepoDayStatQuery)) *SnapshotQuery {
+	query := (&MemberRepoDayStatClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withMemberRepoDayStats = query
+	return _q
+}
+
+// WithRepoMetas tells the query-builder to eager-load the nodes that are connected to
+// the "repo_metas" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SnapshotQuery) WithRepoMetas(opts ...func(*RepoMetaQuery)) *SnapshotQuery {
+	query := (&RepoMetaClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withRepoMetas = query
 	return _q
 }
 
@@ -479,11 +551,13 @@ func (_q *SnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Sna
 	var (
 		nodes       = []*Snapshot{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [6]bool{
 			_q.withMemberStats != nil,
 			_q.withMemberYearStats != nil,
 			_q.withMemberDayStats != nil,
 			_q.withMemberRepoStats != nil,
+			_q.withMemberRepoDayStats != nil,
+			_q.withRepoMetas != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -529,6 +603,22 @@ func (_q *SnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Sna
 		if err := _q.loadMemberRepoStats(ctx, query, nodes,
 			func(n *Snapshot) { n.Edges.MemberRepoStats = []*MemberRepoStat{} },
 			func(n *Snapshot, e *MemberRepoStat) { n.Edges.MemberRepoStats = append(n.Edges.MemberRepoStats, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withMemberRepoDayStats; query != nil {
+		if err := _q.loadMemberRepoDayStats(ctx, query, nodes,
+			func(n *Snapshot) { n.Edges.MemberRepoDayStats = []*MemberRepoDayStat{} },
+			func(n *Snapshot, e *MemberRepoDayStat) {
+				n.Edges.MemberRepoDayStats = append(n.Edges.MemberRepoDayStats, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withRepoMetas; query != nil {
+		if err := _q.loadRepoMetas(ctx, query, nodes,
+			func(n *Snapshot) { n.Edges.RepoMetas = []*RepoMeta{} },
+			func(n *Snapshot, e *RepoMeta) { n.Edges.RepoMetas = append(n.Edges.RepoMetas, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -654,6 +744,68 @@ func (_q *SnapshotQuery) loadMemberRepoStats(ctx context.Context, query *MemberR
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "snapshot_member_repo_stats" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SnapshotQuery) loadMemberRepoDayStats(ctx context.Context, query *MemberRepoDayStatQuery, nodes []*Snapshot, init func(*Snapshot), assign func(*Snapshot, *MemberRepoDayStat)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Snapshot)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.MemberRepoDayStat(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(snapshot.MemberRepoDayStatsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.snapshot_member_repo_day_stats
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "snapshot_member_repo_day_stats" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "snapshot_member_repo_day_stats" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SnapshotQuery) loadRepoMetas(ctx context.Context, query *RepoMetaQuery, nodes []*Snapshot, init func(*Snapshot), assign func(*Snapshot, *RepoMeta)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Snapshot)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.RepoMeta(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(snapshot.RepoMetasColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.snapshot_repo_metas
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "snapshot_repo_metas" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "snapshot_repo_metas" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

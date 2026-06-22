@@ -6,6 +6,7 @@ import { BarChart } from "../components/BarChart";
 import { sortBy } from "../lib/ranking";
 import { MetricPicker } from "./repositories/MetricPicker";
 import { RankingTable, type RankingColumn } from "./repositories/RankingTable";
+import { MemberTrendComparison } from "./repositories/MemberTrendComparison";
 import { contributorMetrics, findMetric, type ContributorLike } from "./repositories/metrics";
 
 // Single repository drill-down. Fetches one repository's totals plus its flat
@@ -31,6 +32,16 @@ const RepositoryQuery = graphql(`
         reviewCount
         additions
         deletions
+        dailyStats {
+          date
+          commitCount
+          prCreated
+          prMerged
+          reviewCount
+          issueCount
+          totalAdditions
+          totalDeletions
+        }
       }
     }
   }
@@ -141,6 +152,14 @@ export function RepositoryDetail() {
           <div css={{ marginTop: "1.5rem", overflowX: "auto" }}>
             <RankingTable items={contributors} metric={metric} columns={columns} />
           </div>
+
+          <section style={{ marginTop: "2.5rem" }}>
+            <h2>メンバーの活動推移の比較</h2>
+            <p style={{ color: "#6b7280", marginTop: 0 }}>
+              このリポジトリ内での各メンバーの日別活動を重ね合わせて比較します。
+            </p>
+            <MemberTrendComparison contributors={repository.contributors} />
+          </section>
         </>
       )}
     </section>

@@ -3,9 +3,11 @@ import {
   contributorMetrics,
   findMetric,
   repositoryMetrics,
+  trendMetrics,
   type ContributorLike,
   type RepoStatsLike,
 } from "./metrics";
+import type { DailyMetricPoint } from "../../lib/comparison";
 
 const repo: RepoStatsLike = {
   nameWithOwner: "octo/example",
@@ -67,6 +69,34 @@ describe("contributorMetrics value selectors", () => {
       expect(metric.value(contributor)).toBe(tc.want);
     });
   }
+});
+
+describe("trendMetrics", () => {
+  const point: DailyMetricPoint = {
+    date: "2024-01-08",
+    commitCount: 5,
+    prCreated: 2,
+    prMerged: 1,
+    reviewCount: 3,
+    issueCount: 4,
+    totalAdditions: 100,
+    totalDeletions: 40,
+  };
+
+  it("excludes additions/deletions from the overlay metrics", () => {
+    expect(trendMetrics.map((m) => m.key)).toEqual([
+      "commitCount",
+      "prCreated",
+      "prMerged",
+      "reviewCount",
+      "issueCount",
+    ]);
+  });
+
+  it("reads each metric off a daily point", () => {
+    expect(findMetric(trendMetrics, "prMerged").value(point)).toBe(1);
+    expect(findMetric(trendMetrics, "issueCount").value(point)).toBe(4);
+  });
 });
 
 describe("findMetric", () => {

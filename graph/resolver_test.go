@@ -22,6 +22,7 @@ type fakeSnapshotReader struct {
 	teamDaily   []*domain.DailyStatistics
 	repos       []*application.RepositoryStats
 	repo        *application.RepositoryStats
+	repoDaily   []*application.RepositoryDailyStats
 	err         error
 }
 
@@ -47,6 +48,10 @@ func (f *fakeSnapshotReader) Repositories(_ context.Context) ([]*application.Rep
 
 func (f *fakeSnapshotReader) Repository(_ context.Context, _ string) (*application.RepositoryStats, error) {
 	return f.repo, f.err
+}
+
+func (f *fakeSnapshotReader) RepositoryDailyStats(_ context.Context) ([]*application.RepositoryDailyStats, error) {
+	return f.repoDaily, f.err
 }
 
 func newTestQueryResolver(t *testing.T, reader application.SnapshotReader) QueryResolver {

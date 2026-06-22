@@ -44,6 +44,44 @@ type RepositoryContributor struct {
 	ReviewCount int
 	Additions   int
 	Deletions   int
+	// DailyStats はこのリポジトリ内での当該メンバーの日別活動の時系列です（日付昇順）.
+	// リポジトリ内メンバー間の時系列比較（多系列の重ね合わせ）に用います.
+	// 単一リポジトリのドリルダウン（Repository）でのみ設定され、一覧（Repositories）では nil です.
+	DailyStats []*domain.DailyStatistics
+}
+
+// MemberRepoDayStat はメンバー×リポジトリ×日1件分の集計済みメトリクスです.
+// リポジトリ間・リポジトリ内メンバー間の時系列比較の集計入力になります.
+type MemberRepoDayStat struct {
+	Login         string
+	NameWithOwner string
+	Day           string
+	CommitCount   int
+	PRCreated     int
+	PRMerged      int
+	IssueCount    int
+	ReviewCount   int
+	Additions     int
+	Deletions     int
+}
+
+// RepoMeta はリポジトリの所有者メタ情報です（スナップショット内で1リポジトリ1件）.
+// 組織内リポジトリへの絞り込み判定の権威的な情報源です.
+type RepoMeta struct {
+	NameWithOwner string
+	Owner         string
+	// OwnerType は所有者の種別（"Organization" / "User"）です（不明な場合は空文字）.
+	OwnerType string
+}
+
+// RepositoryDailyStats はリポジトリ軸での日別時系列（メンバー横断で合算済み）です.
+// 複数リポジトリの活動推移を重ね合わせて比較するためのデータ源で、所有者メタを同梱します.
+type RepositoryDailyStats struct {
+	NameWithOwner string
+	Owner         string
+	OwnerType     string
+	// DailyStats はこのリポジトリの日別合計の時系列です（日付昇順）.
+	DailyStats []*domain.DailyStatistics
 }
 
 // RepositoryStats はリポジトリ軸での横断集計を表します.
@@ -82,8 +120,11 @@ type SnapshotReader interface {
 	TeamDailyStats(ctx context.Context) ([]*domain.DailyStatistics, error)
 	// Repositories はリポジトリ軸の横断集計を返します.
 	Repositories(ctx context.Context) ([]*RepositoryStats, error)
-	// Repository は指定リポジトリの集計を返します.
+	// Repository は指定リポジトリの集計を返します（貢献者ごとの日別時系列を含む）.
 	Repository(ctx context.Context, nameWithOwner string) (*RepositoryStats, error)
+	// RepositoryDailyStats は各リポジトリの日別合計を、所有者メタ付きで返します.
+	// 複数リポジトリの活動推移を重ね合わせて比較するためのデータ源です.
+	RepositoryDailyStats(ctx context.Context) ([]*RepositoryDailyStats, error)
 }
 
 // SnapshotWriter はバッチが集計済みスナップショットを永続化するための契約です.

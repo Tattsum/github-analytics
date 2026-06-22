@@ -9,6 +9,9 @@ import (
 // MemberDayStat is the predicate function for memberdaystat builders.
 type MemberDayStat func(*sql.Selector)
 
+// MemberRepoDayStat is the predicate function for memberrepodaystat builders.
+type MemberRepoDayStat func(*sql.Selector)
+
 // MemberRepoStat is the predicate function for memberrepostat builders.
 type MemberRepoStat func(*sql.Selector)
 
@@ -17,6 +20,9 @@ type MemberStat func(*sql.Selector)
 
 // MemberYearStat is the predicate function for memberyearstat builders.
 type MemberYearStat func(*sql.Selector)
+
+// RepoMeta is the predicate function for repometa builders.
+type RepoMeta func(*sql.Selector)
 
 // Snapshot is the predicate function for snapshot builders.
 type Snapshot func(*sql.Selector)

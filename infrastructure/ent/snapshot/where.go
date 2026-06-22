@@ -192,6 +192,52 @@ func HasMemberRepoStatsWith(preds ...predicate.MemberRepoStat) predicate.Snapsho
 	})
 }
 
+// HasMemberRepoDayStats applies the HasEdge predicate on the "member_repo_day_stats" edge.
+func HasMemberRepoDayStats() predicate.Snapshot {
+	return predicate.Snapshot(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, MemberRepoDayStatsTable, MemberRepoDayStatsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasMemberRepoDayStatsWith applies the HasEdge predicate on the "member_repo_day_stats" edge with a given conditions (other predicates).
+func HasMemberRepoDayStatsWith(preds ...predicate.MemberRepoDayStat) predicate.Snapshot {
+	return predicate.Snapshot(func(s *sql.Selector) {
+		step := newMemberRepoDayStatsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasRepoMetas applies the HasEdge predicate on the "repo_metas" edge.
+func HasRepoMetas() predicate.Snapshot {
+	return predicate.Snapshot(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RepoMetasTable, RepoMetasColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRepoMetasWith applies the HasEdge predicate on the "repo_metas" edge with a given conditions (other predicates).
+func HasRepoMetasWith(preds ...predicate.RepoMeta) predicate.Snapshot {
+	return predicate.Snapshot(func(s *sql.Selector) {
+		step := newRepoMetasStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Snapshot) predicate.Snapshot {
 	return predicate.Snapshot(sql.AndPredicates(predicates...))

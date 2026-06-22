@@ -13,9 +13,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepodaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/repometa"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/snapshot"
 )
 
@@ -77,11 +79,13 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			memberdaystat.Table:  memberdaystat.ValidColumn,
-			memberrepostat.Table: memberrepostat.ValidColumn,
-			memberstat.Table:     memberstat.ValidColumn,
-			memberyearstat.Table: memberyearstat.ValidColumn,
-			snapshot.Table:       snapshot.ValidColumn,
+			memberdaystat.Table:     memberdaystat.ValidColumn,
+			memberrepodaystat.Table: memberrepodaystat.ValidColumn,
+			memberrepostat.Table:    memberrepostat.ValidColumn,
+			memberstat.Table:        memberstat.ValidColumn,
+			memberyearstat.Table:    memberyearstat.ValidColumn,
+			repometa.Table:          repometa.ValidColumn,
+			snapshot.Table:          snapshot.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

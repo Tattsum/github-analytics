@@ -43,6 +43,47 @@ var (
 			},
 		},
 	}
+	// MemberRepoDayStatsColumns holds the columns for the "member_repo_day_stats" table.
+	MemberRepoDayStatsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "login", Type: field.TypeString},
+		{Name: "name_with_owner", Type: field.TypeString},
+		{Name: "day", Type: field.TypeString},
+		{Name: "commit_count", Type: field.TypeInt, Default: 0},
+		{Name: "pr_created", Type: field.TypeInt, Default: 0},
+		{Name: "pr_merged", Type: field.TypeInt, Default: 0},
+		{Name: "issue_count", Type: field.TypeInt, Default: 0},
+		{Name: "review_count", Type: field.TypeInt, Default: 0},
+		{Name: "additions", Type: field.TypeInt, Default: 0},
+		{Name: "deletions", Type: field.TypeInt, Default: 0},
+		{Name: "snapshot_member_repo_day_stats", Type: field.TypeInt},
+	}
+	// MemberRepoDayStatsTable holds the schema information for the "member_repo_day_stats" table.
+	MemberRepoDayStatsTable = &schema.Table{
+		Name:       "member_repo_day_stats",
+		Columns:    MemberRepoDayStatsColumns,
+		PrimaryKey: []*schema.Column{MemberRepoDayStatsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "member_repo_day_stats_snapshots_member_repo_day_stats",
+				Columns:    []*schema.Column{MemberRepoDayStatsColumns[11]},
+				RefColumns: []*schema.Column{SnapshotsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "memberrepodaystat_login_name_with_owner_day_snapshot_member_repo_day_stats",
+				Unique:  true,
+				Columns: []*schema.Column{MemberRepoDayStatsColumns[1], MemberRepoDayStatsColumns[2], MemberRepoDayStatsColumns[3], MemberRepoDayStatsColumns[11]},
+			},
+			{
+				Name:    "memberrepodaystat_name_with_owner_snapshot_member_repo_day_stats",
+				Unique:  false,
+				Columns: []*schema.Column{MemberRepoDayStatsColumns[2], MemberRepoDayStatsColumns[11]},
+			},
+		},
+	}
 	// MemberRepoStatsColumns holds the columns for the "member_repo_stats" table.
 	MemberRepoStatsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -156,6 +197,35 @@ var (
 			},
 		},
 	}
+	// RepoMetaColumns holds the columns for the "repo_meta" table.
+	RepoMetaColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name_with_owner", Type: field.TypeString},
+		{Name: "owner", Type: field.TypeString},
+		{Name: "owner_type", Type: field.TypeString, Default: ""},
+		{Name: "snapshot_repo_metas", Type: field.TypeInt},
+	}
+	// RepoMetaTable holds the schema information for the "repo_meta" table.
+	RepoMetaTable = &schema.Table{
+		Name:       "repo_meta",
+		Columns:    RepoMetaColumns,
+		PrimaryKey: []*schema.Column{RepoMetaColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "repo_meta_snapshots_repo_metas",
+				Columns:    []*schema.Column{RepoMetaColumns[4]},
+				RefColumns: []*schema.Column{SnapshotsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "repometa_name_with_owner_snapshot_repo_metas",
+				Unique:  true,
+				Columns: []*schema.Column{RepoMetaColumns[1], RepoMetaColumns[4]},
+			},
+		},
+	}
 	// SnapshotsColumns holds the columns for the "snapshots" table.
 	SnapshotsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -177,16 +247,20 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		MemberDayStatsTable,
+		MemberRepoDayStatsTable,
 		MemberRepoStatsTable,
 		MemberStatsTable,
 		MemberYearStatsTable,
+		RepoMetaTable,
 		SnapshotsTable,
 	}
 )
 
 func init() {
 	MemberDayStatsTable.ForeignKeys[0].RefTable = SnapshotsTable
+	MemberRepoDayStatsTable.ForeignKeys[0].RefTable = SnapshotsTable
 	MemberRepoStatsTable.ForeignKeys[0].RefTable = SnapshotsTable
 	MemberStatsTable.ForeignKeys[0].RefTable = SnapshotsTable
 	MemberYearStatsTable.ForeignKeys[0].RefTable = SnapshotsTable
+	RepoMetaTable.ForeignKeys[0].RefTable = SnapshotsTable
 }
