@@ -3,6 +3,8 @@
 // pure helpers are the single source of truth for "which numbers can we rank
 // repositories / contributors by" and how to read them off the typed objects.
 
+import type { DailyMetricPoint } from "../../lib/comparison";
+
 // Shape of a single repository's totals as returned by the `repositories` and
 // `repository` queries. Kept structural (not importing generated types) so the
 // helpers stay usable from tests with plain fixtures.
@@ -58,6 +60,17 @@ export const contributorMetrics: ReadonlyArray<MetricOption<ContributorLike>> = 
   { key: "reviewCount", label: "レビュー", value: (c) => c.reviewCount },
   { key: "additions", label: "追加行", value: (c) => c.additions },
   { key: "deletions", label: "削除行", value: (c) => c.deletions },
+];
+
+// Day-level metrics for the time-series overlay comparisons (repository-axis and
+// member-within-repository axis). additions/deletions are intentionally omitted:
+// their magnitude dwarfs the activity counts and would flatten every other line.
+export const trendMetrics: ReadonlyArray<MetricOption<DailyMetricPoint>> = [
+  { key: "commitCount", label: "コミット", value: (d) => d.commitCount },
+  { key: "prCreated", label: "PR作成", value: (d) => d.prCreated },
+  { key: "prMerged", label: "PRマージ", value: (d) => d.prMerged },
+  { key: "reviewCount", label: "レビュー", value: (d) => d.reviewCount },
+  { key: "issueCount", label: "Issue", value: (d) => d.issueCount },
 ];
 
 // findMetric returns the option matching key, falling back to the first option
