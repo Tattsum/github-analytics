@@ -115,8 +115,16 @@
 - **Markdownリント**: `make lint-markdown` (Markdownファイル)
 - **JSON/YAMLリント**: `make lint-json-yaml` (JSON/YAMLファイル)
 - **GitHub Actionsリント**: `make lint-github-actions` (GitHub Actionsワークフロー)
-- **フォーマット**: `make fmt` (Goコード + Markdown + JSON/YAML)
+- **フォーマット**: `make fmt` (Goコード + Markdown + JSON/YAML)。内部で `go fix ./...` を**2回連続**で実行する
 - **全チェック**: `make check` (フォーマット、リント、markdownlint、JSON/YAMLリント、GitHub Actionsリント、vet、テスト)
+
+## Goコードのモダナイズ（go fix・必須）
+
+- **Goコードを変更したら `go fix ./...` を実行する**（最新のGoイディオムへ自動置換するため）
+- **必ず2回連続で実行する**: `go fix` は1回の適用で導入された変化からさらに修正候補が生じることがあり、
+  1回では収束しない場合がある。2回目で差分が出なくなる（fixed point に達する）ことを確認する
+- `make fmt` がこの2回連続実行を内包しているため、通常は `make fmt` を実行すればよい
+- `make check` / `make ci` は `make fmt` を含むため、CI でも自動的に適用・検証される
 
 ## Markdown品質管理
 
