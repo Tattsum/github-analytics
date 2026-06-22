@@ -23,11 +23,16 @@ const (
 type Activity struct {
 	Type       ActivityType
 	Repository string
-	Date       time.Time
-	Additions  int
-	Deletions  int
-	IsMerged   bool // PRの場合のみ有効
-	IsReview   bool // Reviewの場合のみ有効
+	// RepositoryOwner はリポジトリの所有者ログイン（nameWithOwner の owner 部分）です.
+	RepositoryOwner string
+	// RepositoryOwnerType は所有者の種別（"Organization" / "User"）です.
+	// 組織内リポジトリへの絞り込み判定に用います（不明な場合は空文字）.
+	RepositoryOwnerType string
+	Date                time.Time
+	Additions           int
+	Deletions           int
+	IsMerged            bool // PRの場合のみ有効
+	IsReview            bool // Reviewの場合のみ有効
 }
 
 // NewActivity は新しいActivity値オブジェクトを作成します.
@@ -43,7 +48,11 @@ func NewActivity(activityType ActivityType, repo string, date time.Time, additio
 
 // RepositoryActivity はリポジトリごとの活動を集計した値オブジェクトです.
 type RepositoryActivity struct {
-	Repository     string
+	Repository string
+	// Owner はリポジトリの所有者ログインです.
+	Owner string
+	// OwnerType は所有者の種別（"Organization" / "User"）です（不明な場合は空文字）.
+	OwnerType      string
 	CommitCount    int
 	PRCount        int
 	IssueCount     int

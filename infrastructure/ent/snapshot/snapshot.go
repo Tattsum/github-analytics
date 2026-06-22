@@ -24,6 +24,10 @@ const (
 	EdgeMemberDayStats = "member_day_stats"
 	// EdgeMemberRepoStats holds the string denoting the member_repo_stats edge name in mutations.
 	EdgeMemberRepoStats = "member_repo_stats"
+	// EdgeMemberRepoDayStats holds the string denoting the member_repo_day_stats edge name in mutations.
+	EdgeMemberRepoDayStats = "member_repo_day_stats"
+	// EdgeRepoMetas holds the string denoting the repo_metas edge name in mutations.
+	EdgeRepoMetas = "repo_metas"
 	// Table holds the table name of the snapshot in the database.
 	Table = "snapshots"
 	// MemberStatsTable is the table that holds the member_stats relation/edge.
@@ -54,6 +58,20 @@ const (
 	MemberRepoStatsInverseTable = "member_repo_stats"
 	// MemberRepoStatsColumn is the table column denoting the member_repo_stats relation/edge.
 	MemberRepoStatsColumn = "snapshot_member_repo_stats"
+	// MemberRepoDayStatsTable is the table that holds the member_repo_day_stats relation/edge.
+	MemberRepoDayStatsTable = "member_repo_day_stats"
+	// MemberRepoDayStatsInverseTable is the table name for the MemberRepoDayStat entity.
+	// It exists in this package in order to avoid circular dependency with the "memberrepodaystat" package.
+	MemberRepoDayStatsInverseTable = "member_repo_day_stats"
+	// MemberRepoDayStatsColumn is the table column denoting the member_repo_day_stats relation/edge.
+	MemberRepoDayStatsColumn = "snapshot_member_repo_day_stats"
+	// RepoMetasTable is the table that holds the repo_metas relation/edge.
+	RepoMetasTable = "repo_meta"
+	// RepoMetasInverseTable is the table name for the RepoMeta entity.
+	// It exists in this package in order to avoid circular dependency with the "repometa" package.
+	RepoMetasInverseTable = "repo_meta"
+	// RepoMetasColumn is the table column denoting the repo_metas relation/edge.
+	RepoMetasColumn = "snapshot_repo_metas"
 )
 
 // Columns holds all SQL columns for snapshot fields.
@@ -145,6 +163,34 @@ func ByMemberRepoStats(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newMemberRepoStatsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByMemberRepoDayStatsCount orders the results by member_repo_day_stats count.
+func ByMemberRepoDayStatsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newMemberRepoDayStatsStep(), opts...)
+	}
+}
+
+// ByMemberRepoDayStats orders the results by member_repo_day_stats terms.
+func ByMemberRepoDayStats(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newMemberRepoDayStatsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByRepoMetasCount orders the results by repo_metas count.
+func ByRepoMetasCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRepoMetasStep(), opts...)
+	}
+}
+
+// ByRepoMetas orders the results by repo_metas terms.
+func ByRepoMetas(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRepoMetasStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newMemberStatsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -171,5 +217,19 @@ func newMemberRepoStatsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(MemberRepoStatsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, MemberRepoStatsTable, MemberRepoStatsColumn),
+	)
+}
+func newMemberRepoDayStatsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(MemberRepoDayStatsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, MemberRepoDayStatsTable, MemberRepoDayStatsColumn),
+	)
+}
+func newRepoMetasStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RepoMetasInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, RepoMetasTable, RepoMetasColumn),
 	)
 }

@@ -124,6 +124,10 @@ type RepositoryTotals {
 }
 
 # RepositoryContributor is one member's contribution to a single repository.
+# dailyStats is the member's day-level activity series within this repository,
+# ascending by date. It is only populated by the single-repository `repository`
+# query (used to overlay members' trends within a repo); the cross-repository
+# `repositories` list leaves it empty.
 type RepositoryContributor {
   login: String!
   commitCount: Int!
@@ -131,6 +135,20 @@ type RepositoryContributor {
   reviewCount: Int!
   additions: Int!
   deletions: Int!
+  dailyStats: [DailyStatistics!]!
+}
+
+# RepositoryDailyStats is one repository's team-wide daily activity series
+# (summed across all contributing members), carrying owner metadata so the
+# frontend can filter cross-repository comparisons to org-internal repositories.
+# dailyStats is ascending by date; range filtering and bucketing are done on the
+# frontend. ownerType is GitHub's owner __typename ("Organization" / "User"), or
+# empty when it could not be determined.
+type RepositoryDailyStats {
+  nameWithOwner: String!
+  owner: String!
+  ownerType: String!
+  dailyStats: [DailyStatistics!]!
 }
 
 type Query {
@@ -145,6 +163,11 @@ type Query {
   teamDailyStats: [DailyStatistics!]!
   # Repository-axis cross aggregation across all repositories.
   repositories: [RepositoryStats!]!
-  # A single repository's cross aggregation.
+  # A single repository's cross aggregation, including each contributor's
+  # day-level activity series within the repository.
   repository(nameWithOwner: String!): RepositoryStats
+  # Per-repository daily activity series (summed across members) with owner
+  # metadata, for overlaying multiple repositories' trends. Date-range filtering,
+  # org-internal filtering and bucketing are done on the frontend.
+  repositoryDailyStats: [RepositoryDailyStats!]!
 }

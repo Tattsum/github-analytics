@@ -14,12 +14,16 @@ type Tx struct {
 	config
 	// MemberDayStat is the client for interacting with the MemberDayStat builders.
 	MemberDayStat *MemberDayStatClient
+	// MemberRepoDayStat is the client for interacting with the MemberRepoDayStat builders.
+	MemberRepoDayStat *MemberRepoDayStatClient
 	// MemberRepoStat is the client for interacting with the MemberRepoStat builders.
 	MemberRepoStat *MemberRepoStatClient
 	// MemberStat is the client for interacting with the MemberStat builders.
 	MemberStat *MemberStatClient
 	// MemberYearStat is the client for interacting with the MemberYearStat builders.
 	MemberYearStat *MemberYearStatClient
+	// RepoMeta is the client for interacting with the RepoMeta builders.
+	RepoMeta *RepoMetaClient
 	// Snapshot is the client for interacting with the Snapshot builders.
 	Snapshot *SnapshotClient
 
@@ -154,9 +158,11 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.MemberDayStat = NewMemberDayStatClient(tx.config)
+	tx.MemberRepoDayStat = NewMemberRepoDayStatClient(tx.config)
 	tx.MemberRepoStat = NewMemberRepoStatClient(tx.config)
 	tx.MemberStat = NewMemberStatClient(tx.config)
 	tx.MemberYearStat = NewMemberYearStatClient(tx.config)
+	tx.RepoMeta = NewRepoMetaClient(tx.config)
 	tx.Snapshot = NewSnapshotClient(tx.config)
 }
 

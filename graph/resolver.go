@@ -71,6 +71,7 @@ func toRepositoryStats(r *application.RepositoryStats) *model.RepositoryStats {
 			ReviewCount: c.ReviewCount,
 			Additions:   c.Additions,
 			Deletions:   c.Deletions,
+			DailyStats:  toDailyStatisticsSlice(c.DailyStats),
 		})
 	}
 	return &model.RepositoryStats{
@@ -170,6 +171,30 @@ func toDailyStatistic(d *domain.DailyStatistics) *model.DailyStatistics {
 		ReviewCount:    d.ReviewCount,
 		TotalAdditions: d.TotalAdditions,
 		TotalDeletions: d.TotalDeletions,
+	}
+}
+
+// toDailyStatisticsSlice maps an already-ordered slice of domain daily stats to
+// their GraphQL models, preserving order. Used for the per-repository and
+// per-contributor day-level series, which the reader returns sorted by date.
+func toDailyStatisticsSlice(stats []*domain.DailyStatistics) []*model.DailyStatistics {
+	if len(stats) == 0 {
+		return nil
+	}
+	out := make([]*model.DailyStatistics, 0, len(stats))
+	for _, d := range stats {
+		out = append(out, toDailyStatistic(d))
+	}
+	return out
+}
+
+// toRepositoryDailyStats maps an application.RepositoryDailyStats to its GraphQL model.
+func toRepositoryDailyStats(r *application.RepositoryDailyStats) *model.RepositoryDailyStats {
+	return &model.RepositoryDailyStats{
+		NameWithOwner: r.NameWithOwner,
+		Owner:         r.Owner,
+		OwnerType:     r.OwnerType,
+		DailyStats:    toDailyStatisticsSlice(r.DailyStats),
 	}
 }
 

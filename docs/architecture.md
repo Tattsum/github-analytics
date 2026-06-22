@@ -29,12 +29,19 @@ github-analytics/
 ## データの蓄積方法（スナップショット）
 
 バッチ実行 1 回 = 1 スナップショット（`captured_at`）。スナップショットごとに集計済みメトリクスを保存します
-（メンバー単位のスカラー、メンバー × 年、メンバー × 日、メンバー × リポジトリ（全リポジトリ））。Web はデフォルトで
-**最新スナップショット**を読み込みます。
+（メンバー単位のスカラー、メンバー × 年、メンバー × 日、メンバー × リポジトリ（全リポジトリ）、
+メンバー × リポジトリ × 日、リポジトリの所有者メタ）。Web はデフォルトで**最新スナップショット**を読み込みます。
 
 メンバー × 日（`MemberDayStat`）は活動を `YYYY-MM-DD`（UTC 基準で丸めた日）単位に集計したもので、
 任意の日付範囲での絞り込みと時系列推移グラフのデータ源になります。日付範囲フィルタと週 / 月へのバケット集約は
 ランキング・比較と同様に**フロントエンドで計算**します。
+
+メンバー × リポジトリ × 日（`MemberRepoDayStat`）は時系列の比較（多系列の重ね合わせ）の共通土台です。
+メンバーを横断して合算すれば**リポジトリ軸**の日次推移（複数リポジトリの重ね合わせ）になり、特定リポジトリで
+絞り込めば**リポジトリ内メンバー軸**の日次推移になります。活動のある `(login, repository, day)` の組のみ
+行を作る疎データです。リポジトリの所有者メタ（`RepoMeta`: `name_with_owner` / `owner` / `owner_type`）は
+スナップショット内で 1 リポジトリ 1 行で持ち、「組織内リポジトリ（`owner_type = Organization`）に絞った横断分析」の
+権威的な判定材料になります（`owner_type` は GitHub の owner `__typename`、不明時は空）。
 
 ## ストレージ / API / フロントエンド
 
@@ -45,8 +52,9 @@ github-analytics/
   - `teamSummary: TeamSummary!` — チーム合計・集計
   - `teamDailyStats: [DailyStatistics!]!` — チーム全体の日次合計（日付昇順の時系列）
   - `repositories: [RepositoryStats!]!` — リポジトリ軸の横断集計
-  - `repository(nameWithOwner: String!): RepositoryStats`
-  - 並び替え / 順位付け / 比較・日付範囲の絞り込みは GraphQL ではなく**フロントエンドで計算**します。
+  - `repository(nameWithOwner: String!): RepositoryStats` — 単一リポジトリの集計（貢献者ごとの日次時系列を含む。リポジトリ内メンバー比較用）
+  - `repositoryDailyStats: [RepositoryDailyStats!]!` — リポジトリごとの日次合計（メンバー横断で合算）＋所有者メタ。複数リポジトリの推移の重ね合わせ・組織内絞り込み用
+  - 並び替え / 順位付け / 比較・日付範囲の絞り込み・組織内（owner種別）絞り込みは GraphQL ではなく**フロントエンドで計算**します。
 - **フロントエンド**: React + Vite の SPA。パッケージマネージャは pnpm。GraphQL クライアントは urql、
   型は graphql-codegen（client preset）、チャートは Recharts。本番は Go バイナリが `frontend/dist` を
   埋め込み**同一オリジン**で配信し、開発時は Vite が `/query` を Go サーバへプロキシします。

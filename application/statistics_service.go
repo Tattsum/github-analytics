@@ -41,6 +41,9 @@ func (s *StatisticsService) CalculateStatistics(data *infrastructure.UserActivit
 	// リポジトリ統計を計算
 	s.calculateRepositoryStatistics(stats, allActivities)
 
+	// リポジトリ×日別統計を計算（時系列比較の元データ）
+	s.calculateRepoDailyStatistics(stats, allActivities)
+
 	// 継続性・キャリア変遷を分析
 	s.analyzeContinuityAndCareer(stats)
 
@@ -310,6 +313,8 @@ func (s *StatisticsService) aggregateRepositoryActivities(allActivities []*domai
 		repo, exists := repoMap[activity.Repository]
 		if !exists {
 			repo = domain.NewRepositoryActivity(activity.Repository)
+			repo.Owner = activity.RepositoryOwner
+			repo.OwnerType = activity.RepositoryOwnerType
 			repoMap[activity.Repository] = repo
 			repo.FirstActivity = activity.Date
 			repo.LastActivity = activity.Date
@@ -398,6 +403,61 @@ func (s *StatisticsService) calculateRepositoryStatistics(
 	stats.AllRepositories = s.sortRepositoriesByCommit(repoMap)
 	stats.TopRepositories = s.selectTopRepositories(stats.AllRepositories)
 	stats.LongTermRepositories = s.findLongTermRepositories(stats.TopRepositories)
+}
+
+// calculateRepoDailyStatistics はリポジトリ×日別統計を計算します.
+// aggregateDailyData（メンバー×日）と aggregateRepositoryActivities（メンバー×リポジトリ）の
+// 両方の粒度を併せ持ち、リポジトリ間・リポジトリ内メンバー間の時系列比較の元データになります.
+func (s *StatisticsService) calculateRepoDailyStatistics(
+	stats *domain.UserStatistics,
+	allActivities []*domain.Activity,
+) {
+	// キーは repository + "\x00" + day. NUL はリポジトリ名・日付のいずれにも現れないため安全な区切りです.
+	byRepoDay := make(map[string]*domain.RepoDailyStatistics)
+
+	for _, activity := range allActivities {
+		day := dayKey(activity.Date)
+		key := activity.Repository + "\x00" + day
+
+		stat, exists := byRepoDay[key]
+		if !exists {
+			stat = domain.NewRepoDailyStatistics(activity.Repository, day)
+			byRepoDay[key] = stat
+		}
+
+		switch activity.Type {
+		case domain.ActivityTypeCommit:
+			stat.CommitCount++
+		case domain.ActivityTypePR:
+			stat.PRCreated++
+
+			if activity.IsMerged {
+				stat.PRMerged++
+			}
+		case domain.ActivityTypeIssue:
+			stat.IssueCount++
+		case domain.ActivityTypeReview:
+			stat.ReviewCount++
+		}
+
+		stat.TotalAdditions += activity.Additions
+		stat.TotalDeletions += activity.Deletions
+	}
+
+	repoDays := make([]*domain.RepoDailyStatistics, 0, len(byRepoDay))
+	for _, stat := range byRepoDay {
+		repoDays = append(repoDays, stat)
+	}
+
+	sort.Slice(repoDays, func(i, j int) bool {
+		if repoDays[i].Repository != repoDays[j].Repository {
+			return repoDays[i].Repository < repoDays[j].Repository
+		}
+
+		return repoDays[i].Date < repoDays[j].Date
+	})
+
+	stats.RepoDailyStats = repoDays
 }
 
 // analyzeContinuityAndCareer は継続性・キャリア変遷を分析します.

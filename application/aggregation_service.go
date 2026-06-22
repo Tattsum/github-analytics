@@ -131,3 +131,124 @@ func AggregateTeamDaily(rows []*domain.DailyStatistics) []*domain.DailyStatistic
 
 	return days
 }
+
+// AggregateRepositoryDaily はメンバー×リポジトリ×日の行を nameWithOwner でグルーピングし、
+// 同一リポジトリ・同一日の指標をメンバー横断で合算して、リポジトリごとの日別時系列を返します.
+// 各リポジトリの所有者メタは metas から補完します（無ければ owner/ownerType は空のまま）.
+// 戻り値は nameWithOwner 昇順、各リポジトリの DailyStats は日付昇順で安定ソートされます.
+func AggregateRepositoryDaily(stats []*MemberRepoDayStat, metas []*RepoMeta) []*RepositoryDailyStats {
+	metaIndex := make(map[string]*RepoMeta, len(metas))
+	for _, meta := range metas {
+		if meta == nil {
+			continue
+		}
+
+		metaIndex[meta.NameWithOwner] = meta
+	}
+
+	byRepoDay := make(map[string]map[string]*domain.DailyStatistics)
+
+	for _, stat := range stats {
+		if stat == nil {
+			continue
+		}
+
+		days, exists := byRepoDay[stat.NameWithOwner]
+		if !exists {
+			days = make(map[string]*domain.DailyStatistics)
+			byRepoDay[stat.NameWithOwner] = days
+		}
+
+		day, exists := days[stat.Day]
+		if !exists {
+			day = domain.NewDailyStatistics(stat.Day)
+			days[stat.Day] = day
+		}
+
+		day.CommitCount += stat.CommitCount
+		day.PRCreated += stat.PRCreated
+		day.PRMerged += stat.PRMerged
+		day.IssueCount += stat.IssueCount
+		day.ReviewCount += stat.ReviewCount
+		day.TotalAdditions += stat.Additions
+		day.TotalDeletions += stat.Deletions
+	}
+
+	repos := make([]*RepositoryDailyStats, 0, len(byRepoDay))
+	for nameWithOwner, days := range byRepoDay {
+		repo := &RepositoryDailyStats{
+			NameWithOwner: nameWithOwner,
+			DailyStats:    sortDailyStats(days),
+		}
+
+		if meta := metaIndex[nameWithOwner]; meta != nil {
+			repo.Owner = meta.Owner
+			repo.OwnerType = meta.OwnerType
+		}
+
+		repos = append(repos, repo)
+	}
+
+	sort.Slice(repos, func(i, j int) bool {
+		return repos[i].NameWithOwner < repos[j].NameWithOwner
+	})
+
+	return repos
+}
+
+// AggregateRepositoryContributorDaily は指定リポジトリ内のメンバー×日の時系列を、
+// ログインごとにまとめて返します（リポジトリ内メンバー間の時系列比較に用います）.
+// 各ログインの時系列は日付昇順で安定ソートされます.
+func AggregateRepositoryContributorDaily(
+	stats []*MemberRepoDayStat,
+	nameWithOwner string,
+) map[string][]*domain.DailyStatistics {
+	byLogin := make(map[string]map[string]*domain.DailyStatistics)
+
+	for _, stat := range stats {
+		if stat == nil || stat.NameWithOwner != nameWithOwner {
+			continue
+		}
+
+		days, exists := byLogin[stat.Login]
+		if !exists {
+			days = make(map[string]*domain.DailyStatistics)
+			byLogin[stat.Login] = days
+		}
+
+		day, exists := days[stat.Day]
+		if !exists {
+			day = domain.NewDailyStatistics(stat.Day)
+			days[stat.Day] = day
+		}
+
+		day.CommitCount += stat.CommitCount
+		day.PRCreated += stat.PRCreated
+		day.PRMerged += stat.PRMerged
+		day.IssueCount += stat.IssueCount
+		day.ReviewCount += stat.ReviewCount
+		day.TotalAdditions += stat.Additions
+		day.TotalDeletions += stat.Deletions
+	}
+
+	out := make(map[string][]*domain.DailyStatistics, len(byLogin))
+	for login, days := range byLogin {
+		out[login] = sortDailyStats(days)
+	}
+
+	return out
+}
+
+// sortDailyStats は日付キーの map を日付昇順のスライスへ平坦化します.
+func sortDailyStats(days map[string]*domain.DailyStatistics) []*domain.DailyStatistics {
+	out := make([]*domain.DailyStatistics, 0, len(days))
+	for _, day := range days {
+		out = append(out, day)
+	}
+
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].Date < out[j].Date
+	})
+
+	return out
+}
