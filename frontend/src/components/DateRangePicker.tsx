@@ -21,7 +21,7 @@ const GRANULARITIES: ReadonlyArray<{ value: Granularity; label: string }> = [
 ];
 
 const fieldStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "0.25rem" };
-const labelStyle: React.CSSProperties = { fontSize: "0.75rem", color: "#6b7280" };
+const labelStyle: React.CSSProperties = { fontSize: "0.95rem", color: "#6b7280" };
 
 export function DateRangePicker({ value, onChange, min, max }: DateRangePickerProps) {
   return (
