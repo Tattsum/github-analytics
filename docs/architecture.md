@@ -58,6 +58,9 @@ github-analytics/
 - **フロントエンド**: React + Vite の SPA。パッケージマネージャは pnpm。GraphQL クライアントは urql、
   型は graphql-codegen（client preset）、チャートは Recharts。本番は Go バイナリが `frontend/dist` を
   埋め込み**同一オリジン**で配信し、開発時は Vite が `/query` を Go サーバへプロキシします。
+  - リポジトリ一覧ページには**活動推移の比較**セクションがあり、`repositoryDailyStats` を用いて複数リポジトリの
+    日別活動を多系列折れ線で重ね合わせます。オーナー（組織）での絞り込み・指標選択・期間/粒度指定・対象リポジトリの
+    複数選択（既定は選択指標の上位 N 件、同時表示は上限あり）はすべてフロントで計算します。
 
 ## 指標（v1）
 
