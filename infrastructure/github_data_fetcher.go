@@ -134,6 +134,10 @@ func (f *GitHubDataFetcher) findRepositoryInQuery(
 	repoContribs []struct {
 		Repository struct {
 			NameWithOwner string
+			Owner         struct {
+				Login    string
+				Typename string `graphql:"__typename"`
+			}
 		}
 		Contributions struct {
 			TotalCount int
@@ -159,9 +163,13 @@ func (f *GitHubDataFetcher) findRepositoryInQuery(
 
 // processCommitContributionsFromRepo はリポジトリのContributionsを処理します.
 func (f *GitHubDataFetcher) processCommitContributionsFromRepo(
-	repoContrib struct {
+	repoContrib *struct {
 		Repository struct {
 			NameWithOwner string
+			Owner         struct {
+				Login    string
+				Typename string `graphql:"__typename"`
+			}
 		}
 		Contributions struct {
 			TotalCount int
@@ -185,6 +193,8 @@ func (f *GitHubDataFetcher) processCommitContributionsFromRepo(
 			0, // Additions: GraphQL APIの制限により取得不可
 			0, // Deletions: GraphQL APIの制限により取得不可
 		)
+		activity.RepositoryOwner = repoContrib.Repository.Owner.Login
+		activity.RepositoryOwnerType = repoContrib.Repository.Owner.Typename
 		activities = append(activities, activity)
 	}
 
@@ -205,6 +215,10 @@ func (f *GitHubDataFetcher) fetchRepositoryCommitContributionsPage(
 				CommitContributionsByRepository []struct {
 					Repository struct {
 						NameWithOwner string
+						Owner         struct {
+							Login    string
+							Typename string `graphql:"__typename"`
+						}
 					}
 					Contributions struct {
 						TotalCount int
@@ -240,7 +254,7 @@ func (f *GitHubDataFetcher) fetchRepositoryCommitContributionsPage(
 	}
 
 	repoContrib := query.User.ContributionsCollection.CommitContributionsByRepository[idx]
-	activities := f.processCommitContributionsFromRepo(repoContrib)
+	activities := f.processCommitContributionsFromRepo(&repoContrib)
 
 	var nextAfter *githubv4.String
 
@@ -315,6 +329,10 @@ func (f *GitHubDataFetcher) fetchCommitsWindow(ctx context.Context, username str
 				CommitContributionsByRepository []struct {
 					Repository struct {
 						NameWithOwner string
+						Owner         struct {
+							Login    string
+							Typename string `graphql:"__typename"`
+						}
 					}
 					Contributions struct {
 						TotalCount int
@@ -357,6 +375,10 @@ func (f *GitHubDataFetcher) processCommitsWithPagination(
 	repoContribs []struct {
 		Repository struct {
 			NameWithOwner string
+			Owner         struct {
+				Login    string
+				Typename string `graphql:"__typename"`
+			}
 		}
 		Contributions struct {
 			TotalCount int
@@ -386,6 +408,8 @@ func (f *GitHubDataFetcher) processCommitsWithPagination(
 				0, // Additions: GraphQL APIの制限により取得不可
 				0, // Deletions: GraphQL APIの制限により取得不可
 			)
+			activity.RepositoryOwner = repoContrib.Repository.Owner.Login
+			activity.RepositoryOwnerType = repoContrib.Repository.Owner.Typename
 			activities = append(activities, activity)
 		}
 
@@ -418,6 +442,10 @@ func (f *GitHubDataFetcher) FetchPullRequests(ctx context.Context, username stri
 					MergedAt   *githubv4.DateTime
 					Repository struct {
 						NameWithOwner string
+						Owner         struct {
+							Login    string
+							Typename string `graphql:"__typename"`
+						}
 					}
 					Additions int
 					Deletions int
@@ -453,6 +481,8 @@ func (f *GitHubDataFetcher) FetchPullRequests(ctx context.Context, username stri
 				pr.Additions,
 				pr.Deletions,
 			)
+			activity.RepositoryOwner = pr.Repository.Owner.Login
+			activity.RepositoryOwnerType = pr.Repository.Owner.Typename
 			activity.IsMerged = pr.MergedAt != nil
 			activities = append(activities, activity)
 		}
@@ -479,6 +509,10 @@ func (f *GitHubDataFetcher) FetchIssues(ctx context.Context, username string, _ 
 					CreatedAt  githubv4.DateTime
 					Repository struct {
 						NameWithOwner string
+						Owner         struct {
+							Login    string
+							Typename string `graphql:"__typename"`
+						}
 					}
 				}
 				PageInfo struct {
@@ -512,6 +546,8 @@ func (f *GitHubDataFetcher) FetchIssues(ctx context.Context, username string, _ 
 				0,
 				0,
 			)
+			activity.RepositoryOwner = issue.Repository.Owner.Login
+			activity.RepositoryOwnerType = issue.Repository.Owner.Typename
 			activities = append(activities, activity)
 		}
 
@@ -531,6 +567,10 @@ func (f *GitHubDataFetcher) findReviewRepositoryInQuery(
 	repoContribs []struct {
 		Repository struct {
 			NameWithOwner string
+			Owner         struct {
+				Login    string
+				Typename string `graphql:"__typename"`
+			}
 		}
 		Contributions struct {
 			TotalCount int
@@ -559,9 +599,13 @@ func (f *GitHubDataFetcher) findReviewRepositoryInQuery(
 
 // processReviewContributionsFromRepo はリポジトリのレビューContributionsを処理します.
 func (f *GitHubDataFetcher) processReviewContributionsFromRepo(
-	repoContrib struct {
+	repoContrib *struct {
 		Repository struct {
 			NameWithOwner string
+			Owner         struct {
+				Login    string
+				Typename string `graphql:"__typename"`
+			}
 		}
 		Contributions struct {
 			TotalCount int
@@ -588,6 +632,8 @@ func (f *GitHubDataFetcher) processReviewContributionsFromRepo(
 			0,
 			0,
 		)
+		activity.RepositoryOwner = repoContrib.Repository.Owner.Login
+		activity.RepositoryOwnerType = repoContrib.Repository.Owner.Typename
 		activity.IsReview = true
 		activities = append(activities, activity)
 	}
@@ -609,6 +655,10 @@ func (f *GitHubDataFetcher) fetchRepositoryReviewContributionsPage(
 				PullRequestReviewContributionsByRepository []struct {
 					Repository struct {
 						NameWithOwner string
+						Owner         struct {
+							Login    string
+							Typename string `graphql:"__typename"`
+						}
 					}
 					Contributions struct {
 						TotalCount int
@@ -647,7 +697,7 @@ func (f *GitHubDataFetcher) fetchRepositoryReviewContributionsPage(
 	}
 
 	repoContrib := query.User.ContributionsCollection.PullRequestReviewContributionsByRepository[idx]
-	activities := f.processReviewContributionsFromRepo(repoContrib)
+	activities := f.processReviewContributionsFromRepo(&repoContrib)
 
 	var nextAfter *githubv4.String
 
@@ -719,6 +769,10 @@ func (f *GitHubDataFetcher) fetchReviewsWindow(ctx context.Context, username str
 				PullRequestReviewContributionsByRepository []struct {
 					Repository struct {
 						NameWithOwner string
+						Owner         struct {
+							Login    string
+							Typename string `graphql:"__typename"`
+						}
 					}
 					Contributions struct {
 						TotalCount int
@@ -764,6 +818,10 @@ func (f *GitHubDataFetcher) processReviewsWithPagination(
 	repoContribs []struct {
 		Repository struct {
 			NameWithOwner string
+			Owner         struct {
+				Login    string
+				Typename string `graphql:"__typename"`
+			}
 		}
 		Contributions struct {
 			TotalCount int
@@ -796,6 +854,8 @@ func (f *GitHubDataFetcher) processReviewsWithPagination(
 				0,
 				0,
 			)
+			activity.RepositoryOwner = repoContrib.Repository.Owner.Login
+			activity.RepositoryOwnerType = repoContrib.Repository.Owner.Typename
 			activity.IsReview = true
 			activities = append(activities, activity)
 		}

@@ -42,12 +42,20 @@ type RepositoryActivity struct {
 }
 
 type RepositoryContributor struct {
-	Login       string `json:"login"`
-	CommitCount int    `json:"commitCount"`
-	PrCreated   int    `json:"prCreated"`
-	ReviewCount int    `json:"reviewCount"`
-	Additions   int    `json:"additions"`
-	Deletions   int    `json:"deletions"`
+	Login       string             `json:"login"`
+	CommitCount int                `json:"commitCount"`
+	PrCreated   int                `json:"prCreated"`
+	ReviewCount int                `json:"reviewCount"`
+	Additions   int                `json:"additions"`
+	Deletions   int                `json:"deletions"`
+	DailyStats  []*DailyStatistics `json:"dailyStats"`
+}
+
+type RepositoryDailyStats struct {
+	NameWithOwner string             `json:"nameWithOwner"`
+	Owner         string             `json:"owner"`
+	OwnerType     string             `json:"ownerType"`
+	DailyStats    []*DailyStatistics `json:"dailyStats"`
 }
 
 type RepositoryStats struct {

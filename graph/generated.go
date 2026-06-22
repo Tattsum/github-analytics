@@ -61,12 +61,13 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Member         func(childComplexity int, login string) int
-		Members        func(childComplexity int) int
-		Repositories   func(childComplexity int) int
-		Repository     func(childComplexity int, nameWithOwner string) int
-		TeamDailyStats func(childComplexity int) int
-		TeamSummary    func(childComplexity int) int
+		Member               func(childComplexity int, login string) int
+		Members              func(childComplexity int) int
+		Repositories         func(childComplexity int) int
+		Repository           func(childComplexity int, nameWithOwner string) int
+		RepositoryDailyStats func(childComplexity int) int
+		TeamDailyStats       func(childComplexity int) int
+		TeamSummary          func(childComplexity int) int
 	}
 
 	RepositoryActivity struct {
@@ -84,10 +85,18 @@ type ComplexityRoot struct {
 	RepositoryContributor struct {
 		Additions   func(childComplexity int) int
 		CommitCount func(childComplexity int) int
+		DailyStats  func(childComplexity int) int
 		Deletions   func(childComplexity int) int
 		Login       func(childComplexity int) int
 		PrCreated   func(childComplexity int) int
 		ReviewCount func(childComplexity int) int
+	}
+
+	RepositoryDailyStats struct {
+		DailyStats    func(childComplexity int) int
+		NameWithOwner func(childComplexity int) int
+		Owner         func(childComplexity int) int
+		OwnerType     func(childComplexity int) int
 	}
 
 	RepositoryStats struct {
@@ -171,6 +180,7 @@ type QueryResolver interface {
 	TeamDailyStats(ctx context.Context) ([]*model.DailyStatistics, error)
 	Repositories(ctx context.Context) ([]*model.RepositoryStats, error)
 	Repository(ctx context.Context, nameWithOwner string) (*model.RepositoryStats, error)
+	RepositoryDailyStats(ctx context.Context) ([]*model.RepositoryDailyStats, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -335,6 +345,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Repository(childComplexity, args["nameWithOwner"].(string)), true
+	case "Query.repositoryDailyStats":
+		if e.ComplexityRoot.Query.RepositoryDailyStats == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.RepositoryDailyStats(childComplexity), true
 	case "Query.teamDailyStats":
 		if e.ComplexityRoot.Query.TeamDailyStats == nil {
 			break
@@ -415,6 +431,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RepositoryContributor.CommitCount(childComplexity), true
+	case "RepositoryContributor.dailyStats":
+		if e.ComplexityRoot.RepositoryContributor.DailyStats == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RepositoryContributor.DailyStats(childComplexity), true
 	case "RepositoryContributor.deletions":
 		if e.ComplexityRoot.RepositoryContributor.Deletions == nil {
 			break
@@ -439,6 +461,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RepositoryContributor.ReviewCount(childComplexity), true
+
+	case "RepositoryDailyStats.dailyStats":
+		if e.ComplexityRoot.RepositoryDailyStats.DailyStats == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RepositoryDailyStats.DailyStats(childComplexity), true
+	case "RepositoryDailyStats.nameWithOwner":
+		if e.ComplexityRoot.RepositoryDailyStats.NameWithOwner == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RepositoryDailyStats.NameWithOwner(childComplexity), true
+	case "RepositoryDailyStats.owner":
+		if e.ComplexityRoot.RepositoryDailyStats.Owner == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RepositoryDailyStats.Owner(childComplexity), true
+	case "RepositoryDailyStats.ownerType":
+		if e.ComplexityRoot.RepositoryDailyStats.OwnerType == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RepositoryDailyStats.OwnerType(childComplexity), true
 
 	case "RepositoryStats.contributorCount":
 		if e.ComplexityRoot.RepositoryStats.ContributorCount == nil {
@@ -924,8 +971,24 @@ func (ec *executionContext) childFields_RepositoryContributor(ctx context.Contex
 		return ec.fieldContext_RepositoryContributor_additions(ctx, field)
 	case "deletions":
 		return ec.fieldContext_RepositoryContributor_deletions(ctx, field)
+	case "dailyStats":
+		return ec.fieldContext_RepositoryContributor_dailyStats(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type RepositoryContributor", field.Name)
+}
+
+func (ec *executionContext) childFields_RepositoryDailyStats(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "nameWithOwner":
+		return ec.fieldContext_RepositoryDailyStats_nameWithOwner(ctx, field)
+	case "owner":
+		return ec.fieldContext_RepositoryDailyStats_owner(ctx, field)
+	case "ownerType":
+		return ec.fieldContext_RepositoryDailyStats_ownerType(ctx, field)
+	case "dailyStats":
+		return ec.fieldContext_RepositoryDailyStats_dailyStats(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type RepositoryDailyStats", field.Name)
 }
 
 func (ec *executionContext) childFields_RepositoryStats(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -1914,6 +1977,38 @@ func (ec *executionContext) fieldContext_Query_repository(ctx context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_repositoryDailyStats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_repositoryDailyStats(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().RepositoryDailyStats(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.RepositoryDailyStats) graphql.Marshaler {
+			return ec.marshalNRepositoryDailyStats2ᚕᚖgithubᚗcomᚋTattsumᚋgithubᚑanalyticsᚋgraphᚋmodelᚐRepositoryDailyStatsᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_repositoryDailyStats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RepositoryDailyStats(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2333,6 +2428,139 @@ func (ec *executionContext) _RepositoryContributor_deletions(ctx context.Context
 }
 func (ec *executionContext) fieldContext_RepositoryContributor_deletions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("RepositoryContributor", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _RepositoryContributor_dailyStats(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryContributor) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RepositoryContributor_dailyStats(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DailyStats, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.DailyStatistics) graphql.Marshaler {
+			return ec.marshalNDailyStatistics2ᚕᚖgithubᚗcomᚋTattsumᚋgithubᚑanalyticsᚋgraphᚋmodelᚐDailyStatisticsᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RepositoryContributor_dailyStats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RepositoryContributor",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_DailyStatistics(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RepositoryDailyStats_nameWithOwner(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryDailyStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RepositoryDailyStats_nameWithOwner(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.NameWithOwner, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RepositoryDailyStats_nameWithOwner(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RepositoryDailyStats", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _RepositoryDailyStats_owner(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryDailyStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RepositoryDailyStats_owner(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Owner, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RepositoryDailyStats_owner(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RepositoryDailyStats", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _RepositoryDailyStats_ownerType(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryDailyStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RepositoryDailyStats_ownerType(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OwnerType, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RepositoryDailyStats_ownerType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RepositoryDailyStats", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _RepositoryDailyStats_dailyStats(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryDailyStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RepositoryDailyStats_dailyStats(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DailyStats, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.DailyStatistics) graphql.Marshaler {
+			return ec.marshalNDailyStatistics2ᚕᚖgithubᚗcomᚋTattsumᚋgithubᚑanalyticsᚋgraphᚋmodelᚐDailyStatisticsᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RepositoryDailyStats_dailyStats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RepositoryDailyStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_DailyStatistics(ctx, field)
+		},
+	}
+	return fc, nil
 }
 
 func (ec *executionContext) _RepositoryStats_nameWithOwner(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryStats) (ret graphql.Marshaler) {
@@ -4947,6 +5175,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "repositoryDailyStats":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_repositoryDailyStats(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -5101,6 +5351,65 @@ func (ec *executionContext) _RepositoryContributor(ctx context.Context, sel ast.
 			}
 		case "deletions":
 			out.Values[i] = ec._RepositoryContributor_deletions(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "dailyStats":
+			out.Values[i] = ec._RepositoryContributor_dailyStats(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var repositoryDailyStatsImplementors = []string{"RepositoryDailyStats"}
+
+func (ec *executionContext) _RepositoryDailyStats(ctx context.Context, sel ast.SelectionSet, obj *model.RepositoryDailyStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, repositoryDailyStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RepositoryDailyStats")
+		case "nameWithOwner":
+			out.Values[i] = ec._RepositoryDailyStats_nameWithOwner(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "owner":
+			out.Values[i] = ec._RepositoryDailyStats_owner(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ownerType":
+			out.Values[i] = ec._RepositoryDailyStats_ownerType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "dailyStats":
+			out.Values[i] = ec._RepositoryDailyStats_dailyStats(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -6134,6 +6443,32 @@ func (ec *executionContext) marshalNRepositoryContributor2ᚖgithubᚗcomᚋTatt
 		return graphql.Null
 	}
 	return ec._RepositoryContributor(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRepositoryDailyStats2ᚕᚖgithubᚗcomᚋTattsumᚋgithubᚑanalyticsᚋgraphᚋmodelᚐRepositoryDailyStatsᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.RepositoryDailyStats) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNRepositoryDailyStats2ᚖgithubᚗcomᚋTattsumᚋgithubᚑanalyticsᚋgraphᚋmodelᚐRepositoryDailyStats(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNRepositoryDailyStats2ᚖgithubᚗcomᚋTattsumᚋgithubᚑanalyticsᚋgraphᚋmodelᚐRepositoryDailyStats(ctx context.Context, sel ast.SelectionSet, v *model.RepositoryDailyStats) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RepositoryDailyStats(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNRepositoryStats2ᚕᚖgithubᚗcomᚋTattsumᚋgithubᚑanalyticsᚋgraphᚋmodelᚐRepositoryStatsᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.RepositoryStats) graphql.Marshaler {

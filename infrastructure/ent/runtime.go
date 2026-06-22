@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepodaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/repometa"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/schema"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/snapshot"
 )
@@ -55,6 +57,48 @@ func init() {
 	memberdaystatDescDeletions := memberdaystatFields[8].Descriptor()
 	// memberdaystat.DefaultDeletions holds the default value on creation for the deletions field.
 	memberdaystat.DefaultDeletions = memberdaystatDescDeletions.Default.(int)
+	memberrepodaystatFields := schema.MemberRepoDayStat{}.Fields()
+	_ = memberrepodaystatFields
+	// memberrepodaystatDescLogin is the schema descriptor for login field.
+	memberrepodaystatDescLogin := memberrepodaystatFields[0].Descriptor()
+	// memberrepodaystat.LoginValidator is a validator for the "login" field. It is called by the builders before save.
+	memberrepodaystat.LoginValidator = memberrepodaystatDescLogin.Validators[0].(func(string) error)
+	// memberrepodaystatDescNameWithOwner is the schema descriptor for name_with_owner field.
+	memberrepodaystatDescNameWithOwner := memberrepodaystatFields[1].Descriptor()
+	// memberrepodaystat.NameWithOwnerValidator is a validator for the "name_with_owner" field. It is called by the builders before save.
+	memberrepodaystat.NameWithOwnerValidator = memberrepodaystatDescNameWithOwner.Validators[0].(func(string) error)
+	// memberrepodaystatDescDay is the schema descriptor for day field.
+	memberrepodaystatDescDay := memberrepodaystatFields[2].Descriptor()
+	// memberrepodaystat.DayValidator is a validator for the "day" field. It is called by the builders before save.
+	memberrepodaystat.DayValidator = memberrepodaystatDescDay.Validators[0].(func(string) error)
+	// memberrepodaystatDescCommitCount is the schema descriptor for commit_count field.
+	memberrepodaystatDescCommitCount := memberrepodaystatFields[3].Descriptor()
+	// memberrepodaystat.DefaultCommitCount holds the default value on creation for the commit_count field.
+	memberrepodaystat.DefaultCommitCount = memberrepodaystatDescCommitCount.Default.(int)
+	// memberrepodaystatDescPrCreated is the schema descriptor for pr_created field.
+	memberrepodaystatDescPrCreated := memberrepodaystatFields[4].Descriptor()
+	// memberrepodaystat.DefaultPrCreated holds the default value on creation for the pr_created field.
+	memberrepodaystat.DefaultPrCreated = memberrepodaystatDescPrCreated.Default.(int)
+	// memberrepodaystatDescPrMerged is the schema descriptor for pr_merged field.
+	memberrepodaystatDescPrMerged := memberrepodaystatFields[5].Descriptor()
+	// memberrepodaystat.DefaultPrMerged holds the default value on creation for the pr_merged field.
+	memberrepodaystat.DefaultPrMerged = memberrepodaystatDescPrMerged.Default.(int)
+	// memberrepodaystatDescIssueCount is the schema descriptor for issue_count field.
+	memberrepodaystatDescIssueCount := memberrepodaystatFields[6].Descriptor()
+	// memberrepodaystat.DefaultIssueCount holds the default value on creation for the issue_count field.
+	memberrepodaystat.DefaultIssueCount = memberrepodaystatDescIssueCount.Default.(int)
+	// memberrepodaystatDescReviewCount is the schema descriptor for review_count field.
+	memberrepodaystatDescReviewCount := memberrepodaystatFields[7].Descriptor()
+	// memberrepodaystat.DefaultReviewCount holds the default value on creation for the review_count field.
+	memberrepodaystat.DefaultReviewCount = memberrepodaystatDescReviewCount.Default.(int)
+	// memberrepodaystatDescAdditions is the schema descriptor for additions field.
+	memberrepodaystatDescAdditions := memberrepodaystatFields[8].Descriptor()
+	// memberrepodaystat.DefaultAdditions holds the default value on creation for the additions field.
+	memberrepodaystat.DefaultAdditions = memberrepodaystatDescAdditions.Default.(int)
+	// memberrepodaystatDescDeletions is the schema descriptor for deletions field.
+	memberrepodaystatDescDeletions := memberrepodaystatFields[9].Descriptor()
+	// memberrepodaystat.DefaultDeletions holds the default value on creation for the deletions field.
+	memberrepodaystat.DefaultDeletions = memberrepodaystatDescDeletions.Default.(int)
 	memberrepostatFields := schema.MemberRepoStat{}.Fields()
 	_ = memberrepostatFields
 	// memberrepostatDescLogin is the schema descriptor for login field.
@@ -177,6 +221,20 @@ func init() {
 	memberyearstatDescDeletions := memberyearstatFields[8].Descriptor()
 	// memberyearstat.DefaultDeletions holds the default value on creation for the deletions field.
 	memberyearstat.DefaultDeletions = memberyearstatDescDeletions.Default.(int)
+	repometaFields := schema.RepoMeta{}.Fields()
+	_ = repometaFields
+	// repometaDescNameWithOwner is the schema descriptor for name_with_owner field.
+	repometaDescNameWithOwner := repometaFields[0].Descriptor()
+	// repometa.NameWithOwnerValidator is a validator for the "name_with_owner" field. It is called by the builders before save.
+	repometa.NameWithOwnerValidator = repometaDescNameWithOwner.Validators[0].(func(string) error)
+	// repometaDescOwner is the schema descriptor for owner field.
+	repometaDescOwner := repometaFields[1].Descriptor()
+	// repometa.OwnerValidator is a validator for the "owner" field. It is called by the builders before save.
+	repometa.OwnerValidator = repometaDescOwner.Validators[0].(func(string) error)
+	// repometaDescOwnerType is the schema descriptor for owner_type field.
+	repometaDescOwnerType := repometaFields[2].Descriptor()
+	// repometa.DefaultOwnerType holds the default value on creation for the owner_type field.
+	repometa.DefaultOwnerType = repometaDescOwnerType.Default.(string)
 	snapshotFields := schema.Snapshot{}.Fields()
 	_ = snapshotFields
 	// snapshotDescCapturedAt is the schema descriptor for captured_at field.

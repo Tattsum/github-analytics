@@ -40,6 +40,30 @@ func NewDailyStatistics(date string) *DailyStatistics {
 	}
 }
 
+// RepoDailyStatistics はリポジトリ×日別の統計情報を表す値オブジェクトです.
+// メンバー×リポジトリ×日の集計1件分で、リポジトリ間およびリポジトリ内メンバー間の
+// 時系列比較（多系列の重ね合わせ）の元データになります.
+// Date は "2006-01-02" 形式（UTC基準で丸めた日）のISO日付文字列です.
+type RepoDailyStatistics struct {
+	Repository     string
+	Date           string
+	CommitCount    int
+	PRCreated      int
+	PRMerged       int
+	IssueCount     int
+	ReviewCount    int
+	TotalAdditions int
+	TotalDeletions int
+}
+
+// NewRepoDailyStatistics は新しいRepoDailyStatistics値オブジェクトを作成します.
+func NewRepoDailyStatistics(repository, date string) *RepoDailyStatistics {
+	return &RepoDailyStatistics{
+		Repository: repository,
+		Date:       date,
+	}
+}
+
 // UserStatistics はユーザーの統計情報を集約するドメインモデルです.
 type UserStatistics struct {
 	User                *User
@@ -55,7 +79,9 @@ type UserStatistics struct {
 	PeakActivityCommits int
 	YearlyStats         map[int]*YearlyStatistics
 	// DailyStats は日別の統計情報です（キーは "2006-01-02" 形式のISO日付文字列）.
-	DailyStats           map[string]*DailyStatistics
+	DailyStats map[string]*DailyStatistics
+	// RepoDailyStats はリポジトリ×日別の統計情報です（時系列比較の元データ）.
+	RepoDailyStats       []*RepoDailyStatistics
 	TopRepositories      []*RepositoryActivity
 	LongTermRepositories []*RepositoryActivity
 	// AllRepositories は関与した全リポジトリの活動内訳です（TopRepositories/LongTermRepositoriesとは別に全件を保持する）.
@@ -79,6 +105,7 @@ func NewUserStatistics(user *User) *UserStatistics {
 		User:                 user,
 		YearlyStats:          make(map[int]*YearlyStatistics),
 		DailyStats:           make(map[string]*DailyStatistics),
+		RepoDailyStats:       make([]*RepoDailyStatistics, 0),
 		TopRepositories:      make([]*RepositoryActivity, 0),
 		LongTermRepositories: make([]*RepositoryActivity, 0),
 		AllRepositories:      make([]*RepositoryActivity, 0),

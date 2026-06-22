@@ -35,9 +35,13 @@ type SnapshotEdges struct {
 	MemberDayStats []*MemberDayStat `json:"member_day_stats,omitempty"`
 	// MemberRepoStats holds the value of the member_repo_stats edge.
 	MemberRepoStats []*MemberRepoStat `json:"member_repo_stats,omitempty"`
+	// MemberRepoDayStats holds the value of the member_repo_day_stats edge.
+	MemberRepoDayStats []*MemberRepoDayStat `json:"member_repo_day_stats,omitempty"`
+	// RepoMetas holds the value of the repo_metas edge.
+	RepoMetas []*RepoMeta `json:"repo_metas,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [6]bool
 }
 
 // MemberStatsOrErr returns the MemberStats value or an error if the edge
@@ -74,6 +78,24 @@ func (e SnapshotEdges) MemberRepoStatsOrErr() ([]*MemberRepoStat, error) {
 		return e.MemberRepoStats, nil
 	}
 	return nil, &NotLoadedError{edge: "member_repo_stats"}
+}
+
+// MemberRepoDayStatsOrErr returns the MemberRepoDayStats value or an error if the edge
+// was not loaded in eager-loading.
+func (e SnapshotEdges) MemberRepoDayStatsOrErr() ([]*MemberRepoDayStat, error) {
+	if e.loadedTypes[4] {
+		return e.MemberRepoDayStats, nil
+	}
+	return nil, &NotLoadedError{edge: "member_repo_day_stats"}
+}
+
+// RepoMetasOrErr returns the RepoMetas value or an error if the edge
+// was not loaded in eager-loading.
+func (e SnapshotEdges) RepoMetasOrErr() ([]*RepoMeta, error) {
+	if e.loadedTypes[5] {
+		return e.RepoMetas, nil
+	}
+	return nil, &NotLoadedError{edge: "repo_metas"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -143,6 +165,16 @@ func (_m *Snapshot) QueryMemberDayStats() *MemberDayStatQuery {
 // QueryMemberRepoStats queries the "member_repo_stats" edge of the Snapshot entity.
 func (_m *Snapshot) QueryMemberRepoStats() *MemberRepoStatQuery {
 	return NewSnapshotClient(_m.config).QueryMemberRepoStats(_m)
+}
+
+// QueryMemberRepoDayStats queries the "member_repo_day_stats" edge of the Snapshot entity.
+func (_m *Snapshot) QueryMemberRepoDayStats() *MemberRepoDayStatQuery {
+	return NewSnapshotClient(_m.config).QueryMemberRepoDayStats(_m)
+}
+
+// QueryRepoMetas queries the "repo_metas" edge of the Snapshot entity.
+func (_m *Snapshot) QueryRepoMetas() *RepoMetaQuery {
+	return NewSnapshotClient(_m.config).QueryRepoMetas(_m)
 }
 
 // Update returns a builder for updating this Snapshot.

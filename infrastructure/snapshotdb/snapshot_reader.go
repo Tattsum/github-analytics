@@ -196,24 +196,70 @@ func (r *SnapshotReader) Repositories(ctx context.Context) ([]*application.Repos
 	return application.AggregateRepositories(toRepoStatInputs(snap.Edges.MemberRepoStats)), nil
 }
 
-// Repository は指定リポジトリの集計を返します.
+// Repository は指定リポジトリの集計を、貢献者ごとの日別時系列付きで返します.
 // 該当リポジトリが最新スナップショットに存在しない場合は (nil, nil) を返します.
 func (r *SnapshotReader) Repository(
 	ctx context.Context,
 	nameWithOwner string,
 ) (*application.RepositoryStats, error) {
-	repos, err := r.Repositories(ctx)
+	snap, err := r.latest(ctx, func(q *ent.SnapshotQuery) *ent.SnapshotQuery {
+		return q.
+			WithMemberRepoStats().
+			WithMemberRepoDayStats()
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, repo := range repos {
+	if snap == nil {
+		return nil, nil
+	}
+
+	var target *application.RepositoryStats
+	for _, repo := range application.AggregateRepositories(toRepoStatInputs(snap.Edges.MemberRepoStats)) {
 		if repo.NameWithOwner == nameWithOwner {
-			return repo, nil
+			target = repo
+
+			break
 		}
 	}
 
-	return nil, nil
+	if target == nil {
+		return nil, nil
+	}
+
+	dailyByLogin := application.AggregateRepositoryContributorDaily(
+		toRepoDayStatInputs(snap.Edges.MemberRepoDayStats),
+		nameWithOwner,
+	)
+	for _, contributor := range target.Contributors {
+		contributor.DailyStats = dailyByLogin[contributor.Login]
+	}
+
+	return target, nil
+}
+
+// RepositoryDailyStats は各リポジトリの日別合計（メンバー横断で合算）を、所有者メタ付きで返します.
+// 複数リポジトリの活動推移を重ね合わせて比較するためのデータ源です.
+// スナップショットが無い場合は空スライスを返します（エラーにしません）.
+func (r *SnapshotReader) RepositoryDailyStats(ctx context.Context) ([]*application.RepositoryDailyStats, error) {
+	snap, err := r.latest(ctx, func(q *ent.SnapshotQuery) *ent.SnapshotQuery {
+		return q.
+			WithMemberRepoDayStats().
+			WithRepoMetas()
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if snap == nil {
+		return []*application.RepositoryDailyStats{}, nil
+	}
+
+	return application.AggregateRepositoryDaily(
+		toRepoDayStatInputs(snap.Edges.MemberRepoDayStats),
+		toRepoMetaInputs(snap.Edges.RepoMetas),
+	), nil
 }
 
 // toMemberStats は ent の MemberStat を application.MemberStats へマッピングします.
@@ -247,6 +293,41 @@ func toRepoStatInputs(stats []*ent.MemberRepoStat) []*application.MemberRepoStat
 			ReviewCount:   mrs.ReviewCount,
 			Additions:     mrs.Additions,
 			Deletions:     mrs.Deletions,
+		})
+	}
+
+	return inputs
+}
+
+// toRepoDayStatInputs は ent の MemberRepoDayStat 群を集計関数の入力構造体へマッピングします.
+func toRepoDayStatInputs(stats []*ent.MemberRepoDayStat) []*application.MemberRepoDayStat {
+	inputs := make([]*application.MemberRepoDayStat, 0, len(stats))
+	for _, mrds := range stats {
+		inputs = append(inputs, &application.MemberRepoDayStat{
+			Login:         mrds.Login,
+			NameWithOwner: mrds.NameWithOwner,
+			Day:           mrds.Day,
+			CommitCount:   mrds.CommitCount,
+			PRCreated:     mrds.PrCreated,
+			PRMerged:      mrds.PrMerged,
+			IssueCount:    mrds.IssueCount,
+			ReviewCount:   mrds.ReviewCount,
+			Additions:     mrds.Additions,
+			Deletions:     mrds.Deletions,
+		})
+	}
+
+	return inputs
+}
+
+// toRepoMetaInputs は ent の RepoMeta 群を集計関数の入力構造体へマッピングします.
+func toRepoMetaInputs(metas []*ent.RepoMeta) []*application.RepoMeta {
+	inputs := make([]*application.RepoMeta, 0, len(metas))
+	for _, rm := range metas {
+		inputs = append(inputs, &application.RepoMeta{
+			NameWithOwner: rm.NameWithOwner,
+			Owner:         rm.Owner,
+			OwnerType:     rm.OwnerType,
 		})
 	}
 

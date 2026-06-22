@@ -34,6 +34,8 @@ func (Snapshot) Edges() []ent.Edge {
 		edge.To("member_year_stats", MemberYearStat.Type),
 		edge.To("member_day_stats", MemberDayStat.Type),
 		edge.To("member_repo_stats", MemberRepoStat.Type),
+		edge.To("member_repo_day_stats", MemberRepoDayStat.Type),
+		edge.To("repo_metas", RepoMeta.Type),
 	}
 }
 

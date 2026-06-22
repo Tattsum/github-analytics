@@ -84,6 +84,19 @@ func (r *queryResolver) Repository(ctx context.Context, nameWithOwner string) (*
 	return toRepositoryStats(repo), nil
 }
 
+// RepositoryDailyStats is the resolver for the repositoryDailyStats field.
+func (r *queryResolver) RepositoryDailyStats(ctx context.Context) ([]*model.RepositoryDailyStats, error) {
+	repos, err := r.reader.RepositoryDailyStats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("resolve repositoryDailyStats: %w", err)
+	}
+	out := make([]*model.RepositoryDailyStats, 0, len(repos))
+	for _, repo := range repos {
+		out = append(out, toRepositoryDailyStats(repo))
+	}
+	return out, nil
+}
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
