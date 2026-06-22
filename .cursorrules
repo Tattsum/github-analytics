@@ -1,5 +1,9 @@
 # GitHub Analytics プロジェクトルール
 
+> **CLAUDE.md との関係**: このファイルがプロジェクトルールの正本です。Claude 向けのエントリーポイントは
+> [`CLAUDE.md`](CLAUDE.md) にあり、本ファイルを参照しています。`CLAUDE.md` と `.cursorrules` は
+> **お互いを参照**しており、どちらか一方を更新したら、もう一方と矛盾しないよう両方を確認すること。
+
 ## アーキテクチャ原則
 
 ### クリーンアーキテクチャ
@@ -134,6 +138,19 @@
 - **自動検証**: `make lint-github-actions`で実行する
 - **必須チェック**: `make check`と`make ci`で自動的に実行される
 - **ワークフローファイル作成・変更時**: 必ず`make lint-github-actions`で検証する
+
+## ドキュメント更新ルール（必須）
+
+コードや仕様を変更したら、**同じ変更（PR / コミット）内で関連ドキュメントを必ず更新する**。
+ドキュメントとコードの乖離はバグと同等に扱う。対応表は [`docs/development.md`](docs/development.md) を参照。
+
+- ディレクトリ構成・レイヤー責務・スナップショット方式・指標の変更 → `docs/architecture.md`
+- 前提ツール・環境変数・PAT スコープの変更 → `docs/getting-started.md`
+- CLI フラグ・バッチ / サーバ起動手順・compose の変更 → `docs/usage.md`
+- Make ターゲット・コード生成・テスト / lint 手順の変更 → `docs/development.md`
+- 概要や入口が変わる場合 → `README.md`
+
+更新後は `make lint-markdown` で Markdown を検証する。
 
 ## 参考資料
 
