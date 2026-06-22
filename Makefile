@@ -55,9 +55,9 @@ lint-fix: ## golangci-lintを実行し、自動修正可能な問題を修正
 lint-markdown: ## markdownlintを実行
 	@echo "Running markdownlint..."
 	@if command -v markdownlint-cli2 >/dev/null 2>&1; then \
-		markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
+		markdownlint-cli2 '**/*.md' '!**/node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
 	elif [ -f node_modules/.bin/markdownlint-cli2 ]; then \
-		npx markdownlint-cli2 '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
+		npx markdownlint-cli2 '**/*.md' '!**/node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
 	else \
 		echo "markdownlint-cli2 not found. Run 'make install-tools' first."; \
 		exit 1; \
@@ -97,9 +97,9 @@ lint-github-actions: ## GitHub Actionsワークフローのリントを実行
 lint-markdown-fix: ## markdownlintを実行し、自動修正可能な問題を修正
 	@echo "Running markdownlint with auto-fix..."
 	@if command -v markdownlint-cli2-fix >/dev/null 2>&1; then \
-		markdownlint-cli2-fix '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
+		markdownlint-cli2-fix '**/*.md' '!**/node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
 	elif [ -f node_modules/.bin/markdownlint-cli2-fix ]; then \
-		npx markdownlint-cli2-fix '**/*.md' '!node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
+		npx markdownlint-cli2-fix '**/*.md' '!**/node_modules/**' '!vendor/**' '!output/**' '!.git/**'; \
 	else \
 		echo "markdownlint-cli2-fix not found. Run 'make install-tools' first."; \
 		exit 1; \
