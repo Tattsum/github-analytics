@@ -1,7 +1,9 @@
 name: Coverage
 
 on:
-  workflow_call:
+  schedule:
+    - cron: "0 1 * * *" # JST 10:00 (UTC 01:00) 毎日
+  workflow_dispatch:
 
 jobs:
   coverage:
@@ -30,3 +32,4 @@ jobs:
           path: |
             coverage.out
             coverage.html
+          retention-days: 14

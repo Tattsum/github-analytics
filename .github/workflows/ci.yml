@@ -39,8 +39,3 @@ jobs:
   test:
     uses: ./.github/workflows/ci-test.yml
     needs: [format-check, lint-go, lint-markdown, lint-json-yaml, lint-github-actions, frontend]
-
-  # フェーズ3: テストの後に実行（カバレッジ）
-  coverage:
-    uses: ./.github/workflows/ci-coverage.yml
-    needs: [test]
