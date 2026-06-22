@@ -36,7 +36,7 @@ export function TrendSection({ dailyStats, emptyMessage }: TrendSectionProps) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+    <div css={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       <DateRangePicker value={effectiveRange} onChange={setRange} min={seriesBounds.min} max={seriesBounds.max} />
       <TrendChart data={data} emptyMessage={emptyMessage} />
     </div>

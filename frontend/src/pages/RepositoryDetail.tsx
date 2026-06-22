@@ -109,7 +109,7 @@ export function RepositoryDetail() {
       {data && !repository && <p>最新スナップショットにこのリポジトリが見つかりません。</p>}
       {repository && (
         <>
-          <p style={{ color: "#6b7280" }}>コントリビューター {repository.contributorCount} 人</p>
+          <p css={{ color: "#6b7280" }}>コントリビューター {repository.contributorCount} 人</p>
 
           <h2>累計</h2>
           <ul>
@@ -121,7 +121,7 @@ export function RepositoryDetail() {
           </ul>
 
           <h2>コントリビューターランキング</h2>
-          <div style={{ margin: "1rem 0" }}>
+          <div css={{ margin: "1rem 0" }}>
             <MetricPicker
               label="並び替え"
               options={contributorMetrics}
@@ -138,7 +138,7 @@ export function RepositoryDetail() {
             />
           )}
 
-          <div style={{ marginTop: "1.5rem", overflowX: "auto" }}>
+          <div css={{ marginTop: "1.5rem", overflowX: "auto" }}>
             <RankingTable items={contributors} metric={metric} columns={columns} />
           </div>
         </>

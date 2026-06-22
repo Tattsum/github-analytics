@@ -16,7 +16,7 @@ github-analytics/
 │       └── snapshotdb/        # スナップショットの読み書き（SnapshotWriter / SnapshotReader）
 ├── presentation/              # ファイル出力フォーマッター（CLI file モード用）
 ├── graph/                     # gqlgen: GraphQLスキーマ（*.graphqls）・生成コード・リゾルバ
-├── frontend/                  # React + Vite SPA（urql + graphql-codegen + Recharts）
+├── frontend/                  # React + Vite SPA（urql + graphql-codegen + Recharts + emotion）
 ├── docs/                      # プロジェクトドキュメント（本ディレクトリ）
 ├── docker-compose.yml         # Postgres + Web アプリ
 ├── Dockerfile                 # SPAビルド → Goサーバへ frontend/dist を埋め込み
@@ -50,6 +50,10 @@ github-analytics/
 - **フロントエンド**: React + Vite の SPA。パッケージマネージャは pnpm。GraphQL クライアントは urql、
   型は graphql-codegen（client preset）、チャートは Recharts。本番は Go バイナリが `frontend/dist` を
   埋め込み**同一オリジン**で配信し、開発時は Vite が `/query` を Go サーバへプロキシします。
+  - **スタイリング**: emotion（`css` プロップ + オブジェクト構文）。Vite / tsconfig の `jsxImportSource`
+    を `@emotion/react` に設定。レスポンシブはデスクトップファースト（既存値を残し `@media (max-width)` で
+    上書き）で、ブレークポイントは `src/styles/breakpoints.ts`（タブレット 1024px / スマホ 768px）に集約。
+    スマホ幅ではヘッダがハンバーガーメニューに、テーブルが横スクロール（`overflow-x`）に切り替わります。
 
 ## 指標（v1）
 

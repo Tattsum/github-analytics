@@ -75,7 +75,7 @@ export function Repositories() {
       {error && <p>リポジトリを読み込めませんでした: {error.message}</p>}
       {data && (
         <>
-          <div style={{ margin: "1rem 0" }}>
+          <div css={{ margin: "1rem 0" }}>
             <MetricPicker
               label="並び替え"
               options={repositoryMetrics}
@@ -92,7 +92,7 @@ export function Repositories() {
             />
           )}
 
-          <div style={{ marginTop: "1.5rem", overflowX: "auto" }}>
+          <div css={{ marginTop: "1.5rem", overflowX: "auto" }}>
             <RankingTable items={repositories} metric={metric} columns={columns} />
           </div>
         </>

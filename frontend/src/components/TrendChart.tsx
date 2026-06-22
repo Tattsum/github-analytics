@@ -9,6 +9,8 @@ import {
   YAxis,
 } from "recharts";
 import type { TimeSeriesPoint } from "../lib/timeSeries";
+import { useIsNarrow } from "../lib/useIsNarrow";
+import { narrowXAxisProps } from "./chartAxis";
 
 // additions/deletions are excluded: their magnitude dwarfs the others and would
 // flatten the activity lines. Palette matches YearlyTrendChart.
@@ -28,6 +30,7 @@ export interface TrendChartProps {
 }
 
 export function TrendChart({ data, height = 320, emptyMessage = "対象期間の活動データはありません。" }: TrendChartProps) {
+  const isNarrow = useIsNarrow();
   if (data.length === 0) {
     return <p>{emptyMessage}</p>;
   }
@@ -36,7 +39,7 @@ export function TrendChart({ data, height = 320, emptyMessage = "対象期間の
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={[...data]}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+        <XAxis dataKey="date" tick={{ fontSize: 12 }} {...(isNarrow ? narrowXAxisProps : {})} />
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip />
         <Legend />

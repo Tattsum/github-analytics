@@ -24,7 +24,7 @@ export function SummaryCards({ summary }: { summary: TeamSummary }) {
 
   return (
     <div
-      style={{
+      css={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
         gap: "0.75rem",
@@ -33,15 +33,15 @@ export function SummaryCards({ summary }: { summary: TeamSummary }) {
       {cards.map((card) => (
         <div
           key={card.label}
-          style={{
+          css={{
             border: "1px solid #e5e7eb",
             borderRadius: "0.5rem",
             padding: "0.75rem 1rem",
             backgroundColor: "#ffffff",
           }}
         >
-          <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>{card.label}</div>
-          <div style={{ fontSize: "1.5rem", fontWeight: 600 }}>
+          <div css={{ fontSize: "0.8rem", color: "#6b7280" }}>{card.label}</div>
+          <div css={{ fontSize: "1.5rem", fontWeight: 600 }}>
             {numberFormatter.format(card.value)}
           </div>
         </div>

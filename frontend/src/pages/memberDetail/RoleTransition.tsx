@@ -39,30 +39,32 @@ export function RoleTransition({ points, height = 280 }: RoleTransitionProps) {
           <Line type="monotone" dataKey="reviewCount" name="レビュー" stroke="#d97706" dot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, marginTop: "0.75rem" }}>
-        <thead>
-          <tr style={{ textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
-            <th style={cellStyle}>年</th>
-            <th style={cellStyle}>役割</th>
-            <th style={cellStyle}>PR作成</th>
-            <th style={cellStyle}>レビュー</th>
-            <th style={cellStyle}>レビュー/PR比</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((p) => (
-            <tr key={p.year} style={{ borderBottom: "1px solid #f3f4f6" }}>
-              <td style={cellStyle}>{p.year}</td>
-              <td style={cellStyle}>{p.description}</td>
-              <td style={cellStyle}>{p.prCreated.toLocaleString()}</td>
-              <td style={cellStyle}>{p.reviewCount.toLocaleString()}</td>
-              <td style={cellStyle}>{p.ratio.toFixed(2)}</td>
+      <div css={{ overflowX: "auto", marginTop: "0.75rem" }}>
+        <table css={{ width: "100%", minWidth: 480, borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr css={{ textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
+              <th css={cellStyle}>年</th>
+              <th css={cellStyle}>役割</th>
+              <th css={cellStyle}>PR作成</th>
+              <th css={cellStyle}>レビュー</th>
+              <th css={cellStyle}>レビュー/PR比</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((p) => (
+              <tr key={p.year} css={{ borderBottom: "1px solid #f3f4f6" }}>
+                <td css={cellStyle}>{p.year}</td>
+                <td css={cellStyle}>{p.description}</td>
+                <td css={cellStyle}>{p.prCreated.toLocaleString()}</td>
+                <td css={cellStyle}>{p.reviewCount.toLocaleString()}</td>
+                <td css={cellStyle}>{p.ratio.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
 
-const cellStyle: React.CSSProperties = { padding: "0.4rem 0.6rem" };
+const cellStyle = { padding: "0.4rem 0.6rem" } as const;
