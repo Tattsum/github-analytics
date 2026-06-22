@@ -153,9 +153,9 @@ export function RepositoryDetail() {
             <RankingTable items={contributors} metric={metric} columns={columns} />
           </div>
 
-          <section style={{ marginTop: "2.5rem" }}>
+          <section css={{ marginTop: "2.5rem" }}>
             <h2>メンバーの活動推移の比較</h2>
-            <p style={{ color: "#6b7280", marginTop: 0 }}>
+            <p css={{ color: "#6b7280", marginTop: 0 }}>
               このリポジトリ内での各メンバーの日別活動を重ね合わせて比較します。
             </p>
             <MemberTrendComparison contributors={repository.contributors} />

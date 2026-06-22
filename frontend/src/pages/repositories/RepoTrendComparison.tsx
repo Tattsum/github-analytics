@@ -58,13 +58,13 @@ export function RepoTrendComparison() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <label style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-        <span style={{ fontSize: "0.875rem", color: "#374151" }}>オーナー</span>
+    <div css={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <label css={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+        <span css={{ fontSize: "0.875rem", color: "#374151" }}>オーナー</span>
         <select
           value={ownerFilter}
           onChange={(e) => setOwnerFilter(e.target.value)}
-          style={{ padding: "0.375rem 0.5rem", borderRadius: "0.375rem", border: "1px solid #d1d5db", fontSize: "0.875rem" }}
+          css={{ padding: "0.375rem 0.5rem", borderRadius: "0.375rem", border: "1px solid #d1d5db", fontSize: "0.875rem" }}
         >
           <option value={ALL_OWNERS}>すべてのオーナー</option>
           {owners.map((o) => (

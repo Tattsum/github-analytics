@@ -11,6 +11,21 @@ const dailyStats = [
   { date: "2024-06-15", commitCount: 27, prCreated: 9, prMerged: 8, reviewCount: 14, issueCount: 5, totalAdditions: 1480, totalDeletions: 420 },
 ];
 
+// Derive a distinct-but-stable series per entity so the overlay chart shows
+// separated lines. Factors stay >= 0.6 so no metric rounds down to a zero value
+// (which would be indistinguishable from a missing field).
+const scaleDaily = (factor: number) =>
+  dailyStats.map((d) => ({
+    date: d.date,
+    commitCount: Math.round(d.commitCount * factor),
+    prCreated: Math.round(d.prCreated * factor),
+    prMerged: Math.round(d.prMerged * factor),
+    reviewCount: Math.round(d.reviewCount * factor),
+    issueCount: Math.round(d.issueCount * factor),
+    totalAdditions: Math.round(d.totalAdditions * factor),
+    totalDeletions: Math.round(d.totalDeletions * factor),
+  }));
+
 const member = {
   login: "octocat",
   name: "Octo Cat",
@@ -78,9 +93,9 @@ export const graphqlResponses: Record<string, unknown> = {
       contributorCount: 18,
       total: { commits: 5200, prCreated: 1400, prMerged: 1320, issues: 420, reviews: 2100, additions: 420000, deletions: 160000 },
       contributors: [
-        { login: "octocat", commitCount: 1200, prCreated: 340, reviewCount: 560, additions: 98000, deletions: 36000 },
-        { login: "hubot", commitCount: 900, prCreated: 260, reviewCount: 410, additions: 72000, deletions: 24000 },
-        { login: "monalisa", commitCount: 640, prCreated: 180, reviewCount: 300, additions: 51000, deletions: 18000 },
+        { login: "octocat", commitCount: 1200, prCreated: 340, reviewCount: 560, additions: 98000, deletions: 36000, dailyStats: scaleDaily(1.0) },
+        { login: "hubot", commitCount: 900, prCreated: 260, reviewCount: 410, additions: 72000, deletions: 24000, dailyStats: scaleDaily(0.8) },
+        { login: "monalisa", commitCount: 640, prCreated: 180, reviewCount: 300, additions: 51000, deletions: 18000, dailyStats: scaleDaily(0.6) },
       ],
     },
   },
@@ -108,5 +123,13 @@ export const graphqlResponses: Record<string, unknown> = {
         { year: 2024, description: "reviewer", prCreated: 84, reviewCount: 155, ratio: 1.85 },
       ],
     },
+  },
+  RepositoryTrendComparison: {
+    repositoryDailyStats: [
+      { nameWithOwner: "acme/web", owner: "acme", ownerType: "Organization", dailyStats: scaleDaily(1.0) },
+      { nameWithOwner: "acme/api", owner: "acme", ownerType: "Organization", dailyStats: scaleDaily(0.8) },
+      { nameWithOwner: "acme/infra", owner: "acme", ownerType: "Organization", dailyStats: scaleDaily(0.6) },
+      { nameWithOwner: "octocat/sandbox", owner: "octocat", ownerType: "User", dailyStats: scaleDaily(0.7) },
+    ],
   },
 };

@@ -99,9 +99,9 @@ export function Repositories() {
         </>
       )}
 
-      <section style={{ marginTop: "2.5rem" }}>
+      <section css={{ marginTop: "2.5rem" }}>
         <h2>活動推移の比較</h2>
-        <p style={{ color: "#6b7280", marginTop: 0 }}>
+        <p css={{ color: "#6b7280", marginTop: 0 }}>
           複数リポジトリの日別活動を重ね合わせて比較します。オーナーで絞り込めば組織内リポジトリ横断の推移を確認できます。
         </p>
         <RepoTrendComparison />

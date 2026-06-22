@@ -9,6 +9,8 @@ import {
   YAxis,
 } from "recharts";
 import type { TimeSeriesPoint } from "../lib/timeSeries";
+import { useIsNarrow } from "../lib/useIsNarrow";
+import { narrowXAxisProps } from "./chartAxis";
 
 // One overlaid line: a stable data key (matching a column in the points) plus
 // its display name and color.
@@ -37,6 +39,7 @@ export function OverlayTrendChart({
   height = 320,
   emptyMessage = "対象期間の活動データはありません。",
 }: OverlayTrendChartProps) {
+  const isNarrow = useIsNarrow();
   if (data.length === 0 || series.length === 0) {
     return <p>{emptyMessage}</p>;
   }
@@ -45,7 +48,7 @@ export function OverlayTrendChart({
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={[...data]}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+        <XAxis dataKey="date" tick={{ fontSize: 12 }} {...(isNarrow ? narrowXAxisProps : {})} />
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip />
         <Legend />
