@@ -1,6 +1,7 @@
 package snapshotdb
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/Tattsum/github-analytics/application"
@@ -343,6 +344,58 @@ func TestOwnerOf(t *testing.T) {
 
 			if got != tt.want {
 				t.Errorf("ownerOf(%q, %q) = %q, want %q", tt.nameWithOwner, tt.collectedOwner, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestChunkRows(t *testing.T) {
+	t.Parallel()
+
+	// seq builds [0, 1, ..., n-1] so chunk boundaries and contents are verifiable.
+	seq := func(n int) []int {
+		out := make([]int, n)
+		for i := range out {
+			out[i] = i
+		}
+
+		return out
+	}
+
+	tests := []struct {
+		name      string
+		n         int
+		wantSizes []int
+	}{
+		{name: "empty yields no chunks", n: 0, wantSizes: []int{}},
+		{name: "fewer than the cap is one chunk", n: 3, wantSizes: []int{3}},
+		{name: "exactly the cap is one full chunk", n: maxBulkRows, wantSizes: []int{maxBulkRows}},
+		{name: "one over the cap splits with a remainder", n: maxBulkRows + 1, wantSizes: []int{maxBulkRows, 1}},
+		{name: "multiple caps plus remainder", n: 2*maxBulkRows + 7, wantSizes: []int{maxBulkRows, maxBulkRows, 7}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			chunks := chunkRows(seq(tt.n))
+
+			sizes := make([]int, len(chunks))
+			for i, c := range chunks {
+				sizes[i] = len(c)
+			}
+			if !reflect.DeepEqual(sizes, tt.wantSizes) {
+				t.Fatalf("chunk sizes = %v, want %v", sizes, tt.wantSizes)
+			}
+
+			// Reassembling the chunks must reproduce the original order exactly,
+			// so no row is dropped or duplicated across chunk boundaries.
+			var flat []int
+			for _, c := range chunks {
+				flat = append(flat, c...)
+			}
+			if tt.n > 0 && !reflect.DeepEqual(flat, seq(tt.n)) {
+				t.Fatalf("reassembled = %v, want %v", flat, seq(tt.n))
 			}
 		})
 	}

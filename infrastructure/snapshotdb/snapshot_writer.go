@@ -466,8 +466,16 @@ func applyStatCreates(
 	return nil
 }
 
+// maxBulkRows caps the rows per bulk INSERT. PostgreSQL's extended protocol
+// allows at most 65535 bind parameters per statement, and the member×repo×day
+// bucket sets ~11 columns per row, so a single snapshot easily exceeds the
+// limit. 1000 rows (~11k params) stays well under it for every bucket here.
+const maxBulkRows = 1000
+
 // applyRepoDayAndMetaCreates persists the member×repository×day stats and the
-// per-repository owner metadata against the given snapshot ID.
+// per-repository owner metadata against the given snapshot ID. Both inserts are
+// chunked so a high-cardinality snapshot cannot exceed PostgreSQL's bind
+// parameter limit.
 func applyRepoDayAndMetaCreates(
 	ctx context.Context,
 	tx *ent.Tx,
@@ -475,9 +483,9 @@ func applyRepoDayAndMetaCreates(
 	repoDayStats []memberRepoDayStatInput,
 	repoMetas []repoMetaInput,
 ) error {
-	if len(repoDayStats) > 0 {
-		_, err := tx.MemberRepoDayStat.MapCreateBulk(repoDayStats, func(c *ent.MemberRepoDayStatCreate, i int) {
-			d := repoDayStats[i]
+	for _, chunk := range chunkRows(repoDayStats) {
+		_, err := tx.MemberRepoDayStat.MapCreateBulk(chunk, func(c *ent.MemberRepoDayStatCreate, i int) {
+			d := chunk[i]
 			c.SetSnapshotID(snapshotID).
 				SetLogin(d.login).
 				SetNameWithOwner(d.nameWithOwner).
@@ -495,9 +503,9 @@ func applyRepoDayAndMetaCreates(
 		}
 	}
 
-	if len(repoMetas) > 0 {
-		_, err := tx.RepoMeta.MapCreateBulk(repoMetas, func(c *ent.RepoMetaCreate, i int) {
-			m := repoMetas[i]
+	for _, chunk := range chunkRows(repoMetas) {
+		_, err := tx.RepoMeta.MapCreateBulk(chunk, func(c *ent.RepoMetaCreate, i int) {
+			m := chunk[i]
 			c.SetSnapshotID(snapshotID).
 				SetNameWithOwner(m.nameWithOwner).
 				SetOwner(m.owner).
@@ -509,4 +517,20 @@ func applyRepoDayAndMetaCreates(
 	}
 
 	return nil
+}
+
+// chunkRows splits rows into consecutive slices of at most maxBulkRows so each
+// bulk INSERT stays under PostgreSQL's bind parameter limit.
+func chunkRows[T any](rows []T) [][]T {
+	if len(rows) == 0 {
+		return nil
+	}
+
+	chunks := make([][]T, 0, (len(rows)+maxBulkRows-1)/maxBulkRows)
+	for start := 0; start < len(rows); start += maxBulkRows {
+		end := min(start+maxBulkRows, len(rows))
+		chunks = append(chunks, rows[start:end])
+	}
+
+	return chunks
 }
