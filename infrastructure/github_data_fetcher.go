@@ -163,7 +163,7 @@ func (f *GitHubDataFetcher) findRepositoryInQuery(
 
 // processCommitContributionsFromRepo はリポジトリのContributionsを処理します.
 func (f *GitHubDataFetcher) processCommitContributionsFromRepo(
-	repoContrib struct {
+	repoContrib *struct {
 		Repository struct {
 			NameWithOwner string
 			Owner         struct {
@@ -254,7 +254,7 @@ func (f *GitHubDataFetcher) fetchRepositoryCommitContributionsPage(
 	}
 
 	repoContrib := query.User.ContributionsCollection.CommitContributionsByRepository[idx]
-	activities := f.processCommitContributionsFromRepo(repoContrib)
+	activities := f.processCommitContributionsFromRepo(&repoContrib)
 
 	var nextAfter *githubv4.String
 
@@ -599,7 +599,7 @@ func (f *GitHubDataFetcher) findReviewRepositoryInQuery(
 
 // processReviewContributionsFromRepo はリポジトリのレビューContributionsを処理します.
 func (f *GitHubDataFetcher) processReviewContributionsFromRepo(
-	repoContrib struct {
+	repoContrib *struct {
 		Repository struct {
 			NameWithOwner string
 			Owner         struct {
@@ -697,7 +697,7 @@ func (f *GitHubDataFetcher) fetchRepositoryReviewContributionsPage(
 	}
 
 	repoContrib := query.User.ContributionsCollection.PullRequestReviewContributionsByRepository[idx]
-	activities := f.processReviewContributionsFromRepo(repoContrib)
+	activities := f.processReviewContributionsFromRepo(&repoContrib)
 
 	var nextAfter *githubv4.String
 
