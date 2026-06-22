@@ -2,6 +2,7 @@ import { useQuery } from "urql";
 import { graphql } from "../gql";
 import { SummaryCards } from "./teamOverview/SummaryCards";
 import { RankingBoard } from "./teamOverview/RankingBoard";
+import { TrendSection } from "../components/TrendSection";
 
 // Team-wide aggregates for the summary cards. Reads the latest snapshot.
 const TeamSummaryQuery = graphql(`
@@ -14,6 +15,23 @@ const TeamSummaryQuery = graphql(`
       totalPRMerged
       totalIssues
       totalReviews
+      totalAdditions
+      totalDeletions
+    }
+  }
+`);
+
+// Team-wide daily totals as an ascending time series. Date-range filtering and
+// week/month bucketing are computed on the frontend (TrendSection).
+const TeamDailyStatsQuery = graphql(`
+  query TeamOverviewDailyStats {
+    teamDailyStats {
+      date
+      commitCount
+      prCreated
+      prMerged
+      reviewCount
+      issueCount
       totalAdditions
       totalDeletions
     }
@@ -44,9 +62,10 @@ const MembersQuery = graphql(`
 export function TeamOverview() {
   const [summaryResult] = useQuery({ query: TeamSummaryQuery });
   const [membersResult] = useQuery({ query: MembersQuery });
+  const [dailyResult] = useQuery({ query: TeamDailyStatsQuery });
 
-  const fetching = summaryResult.fetching || membersResult.fetching;
-  const error = summaryResult.error ?? membersResult.error;
+  const fetching = summaryResult.fetching || membersResult.fetching || dailyResult.fetching;
+  const error = summaryResult.error ?? membersResult.error ?? dailyResult.error;
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
@@ -56,6 +75,16 @@ export function TeamOverview() {
       {error && <p style={{ color: "#b91c1c" }}>概要を読み込めませんでした: {error.message}</p>}
 
       {summaryResult.data && <SummaryCards summary={summaryResult.data.teamSummary} />}
+
+      {dailyResult.data && (
+        <div>
+          <h2>活動推移（期間指定）</h2>
+          <TrendSection
+            dailyStats={dailyResult.data.teamDailyStats}
+            emptyMessage="最新スナップショットに日次の活動データがまだありません。"
+          />
+        </div>
+      )}
 
       {membersResult.data && (
         <div>

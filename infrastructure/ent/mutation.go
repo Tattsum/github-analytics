@@ -11,6 +11,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/Tattsum/github-analytics/infrastructure/ent/memberdaystat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberrepostat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberstat"
 	"github.com/Tattsum/github-analytics/infrastructure/ent/memberyearstat"
@@ -27,11 +28,1071 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
+	TypeMemberDayStat  = "MemberDayStat"
 	TypeMemberRepoStat = "MemberRepoStat"
 	TypeMemberStat     = "MemberStat"
 	TypeMemberYearStat = "MemberYearStat"
 	TypeSnapshot       = "Snapshot"
 )
+
+// MemberDayStatMutation represents an operation that mutates the MemberDayStat nodes in the graph.
+type MemberDayStatMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	login           *string
+	day             *string
+	commit_count    *int
+	addcommit_count *int
+	pr_created      *int
+	addpr_created   *int
+	pr_merged       *int
+	addpr_merged    *int
+	issue_count     *int
+	addissue_count  *int
+	review_count    *int
+	addreview_count *int
+	additions       *int
+	addadditions    *int
+	deletions       *int
+	adddeletions    *int
+	clearedFields   map[string]struct{}
+	snapshot        *int
+	clearedsnapshot bool
+	done            bool
+	oldValue        func(context.Context) (*MemberDayStat, error)
+	predicates      []predicate.MemberDayStat
+}
+
+var _ ent.Mutation = (*MemberDayStatMutation)(nil)
+
+// memberdaystatOption allows management of the mutation configuration using functional options.
+type memberdaystatOption func(*MemberDayStatMutation)
+
+// newMemberDayStatMutation creates new mutation for the MemberDayStat entity.
+func newMemberDayStatMutation(c config, op Op, opts ...memberdaystatOption) *MemberDayStatMutation {
+	m := &MemberDayStatMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeMemberDayStat,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withMemberDayStatID sets the ID field of the mutation.
+func withMemberDayStatID(id int) memberdaystatOption {
+	return func(m *MemberDayStatMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *MemberDayStat
+		)
+		m.oldValue = func(ctx context.Context) (*MemberDayStat, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().MemberDayStat.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withMemberDayStat sets the old MemberDayStat of the mutation.
+func withMemberDayStat(node *MemberDayStat) memberdaystatOption {
+	return func(m *MemberDayStatMutation) {
+		m.oldValue = func(context.Context) (*MemberDayStat, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m MemberDayStatMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m MemberDayStatMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *MemberDayStatMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *MemberDayStatMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().MemberDayStat.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetLogin sets the "login" field.
+func (m *MemberDayStatMutation) SetLogin(s string) {
+	m.login = &s
+}
+
+// Login returns the value of the "login" field in the mutation.
+func (m *MemberDayStatMutation) Login() (r string, exists bool) {
+	v := m.login
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLogin returns the old "login" field's value of the MemberDayStat entity.
+// If the MemberDayStat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MemberDayStatMutation) OldLogin(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLogin is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLogin requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLogin: %w", err)
+	}
+	return oldValue.Login, nil
+}
+
+// ResetLogin resets all changes to the "login" field.
+func (m *MemberDayStatMutation) ResetLogin() {
+	m.login = nil
+}
+
+// SetDay sets the "day" field.
+func (m *MemberDayStatMutation) SetDay(s string) {
+	m.day = &s
+}
+
+// Day returns the value of the "day" field in the mutation.
+func (m *MemberDayStatMutation) Day() (r string, exists bool) {
+	v := m.day
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDay returns the old "day" field's value of the MemberDayStat entity.
+// If the MemberDayStat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MemberDayStatMutation) OldDay(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDay is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDay requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDay: %w", err)
+	}
+	return oldValue.Day, nil
+}
+
+// ResetDay resets all changes to the "day" field.
+func (m *MemberDayStatMutation) ResetDay() {
+	m.day = nil
+}
+
+// SetCommitCount sets the "commit_count" field.
+func (m *MemberDayStatMutation) SetCommitCount(i int) {
+	m.commit_count = &i
+	m.addcommit_count = nil
+}
+
+// CommitCount returns the value of the "commit_count" field in the mutation.
+func (m *MemberDayStatMutation) CommitCount() (r int, exists bool) {
+	v := m.commit_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCommitCount returns the old "commit_count" field's value of the MemberDayStat entity.
+// If the MemberDayStat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MemberDayStatMutation) OldCommitCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCommitCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCommitCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCommitCount: %w", err)
+	}
+	return oldValue.CommitCount, nil
+}
+
+// AddCommitCount adds i to the "commit_count" field.
+func (m *MemberDayStatMutation) AddCommitCount(i int) {
+	if m.addcommit_count != nil {
+		*m.addcommit_count += i
+	} else {
+		m.addcommit_count = &i
+	}
+}
+
+// AddedCommitCount returns the value that was added to the "commit_count" field in this mutation.
+func (m *MemberDayStatMutation) AddedCommitCount() (r int, exists bool) {
+	v := m.addcommit_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCommitCount resets all changes to the "commit_count" field.
+func (m *MemberDayStatMutation) ResetCommitCount() {
+	m.commit_count = nil
+	m.addcommit_count = nil
+}
+
+// SetPrCreated sets the "pr_created" field.
+func (m *MemberDayStatMutation) SetPrCreated(i int) {
+	m.pr_created = &i
+	m.addpr_created = nil
+}
+
+// PrCreated returns the value of the "pr_created" field in the mutation.
+func (m *MemberDayStatMutation) PrCreated() (r int, exists bool) {
+	v := m.pr_created
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrCreated returns the old "pr_created" field's value of the MemberDayStat entity.
+// If the MemberDayStat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MemberDayStatMutation) OldPrCreated(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrCreated is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrCreated requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrCreated: %w", err)
+	}
+	return oldValue.PrCreated, nil
+}
+
+// AddPrCreated adds i to the "pr_created" field.
+func (m *MemberDayStatMutation) AddPrCreated(i int) {
+	if m.addpr_created != nil {
+		*m.addpr_created += i
+	} else {
+		m.addpr_created = &i
+	}
+}
+
+// AddedPrCreated returns the value that was added to the "pr_created" field in this mutation.
+func (m *MemberDayStatMutation) AddedPrCreated() (r int, exists bool) {
+	v := m.addpr_created
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPrCreated resets all changes to the "pr_created" field.
+func (m *MemberDayStatMutation) ResetPrCreated() {
+	m.pr_created = nil
+	m.addpr_created = nil
+}
+
+// SetPrMerged sets the "pr_merged" field.
+func (m *MemberDayStatMutation) SetPrMerged(i int) {
+	m.pr_merged = &i
+	m.addpr_merged = nil
+}
+
+// PrMerged returns the value of the "pr_merged" field in the mutation.
+func (m *MemberDayStatMutation) PrMerged() (r int, exists bool) {
+	v := m.pr_merged
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrMerged returns the old "pr_merged" field's value of the MemberDayStat entity.
+// If the MemberDayStat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MemberDayStatMutation) OldPrMerged(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrMerged is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrMerged requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrMerged: %w", err)
+	}
+	return oldValue.PrMerged, nil
+}
+
+// AddPrMerged adds i to the "pr_merged" field.
+func (m *MemberDayStatMutation) AddPrMerged(i int) {
+	if m.addpr_merged != nil {
+		*m.addpr_merged += i
+	} else {
+		m.addpr_merged = &i
+	}
+}
+
+// AddedPrMerged returns the value that was added to the "pr_merged" field in this mutation.
+func (m *MemberDayStatMutation) AddedPrMerged() (r int, exists bool) {
+	v := m.addpr_merged
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPrMerged resets all changes to the "pr_merged" field.
+func (m *MemberDayStatMutation) ResetPrMerged() {
+	m.pr_merged = nil
+	m.addpr_merged = nil
+}
+
+// SetIssueCount sets the "issue_count" field.
+func (m *MemberDayStatMutation) SetIssueCount(i int) {
+	m.issue_count = &i
+	m.addissue_count = nil
+}
+
+// IssueCount returns the value of the "issue_count" field in the mutation.
+func (m *MemberDayStatMutation) IssueCount() (r int, exists bool) {
+	v := m.issue_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIssueCount returns the old "issue_count" field's value of the MemberDayStat entity.
+// If the MemberDayStat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MemberDayStatMutation) OldIssueCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIssueCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIssueCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIssueCount: %w", err)
+	}
+	return oldValue.IssueCount, nil
+}
+
+// AddIssueCount adds i to the "issue_count" field.
+func (m *MemberDayStatMutation) AddIssueCount(i int) {
+	if m.addissue_count != nil {
+		*m.addissue_count += i
+	} else {
+		m.addissue_count = &i
+	}
+}
+
+// AddedIssueCount returns the value that was added to the "issue_count" field in this mutation.
+func (m *MemberDayStatMutation) AddedIssueCount() (r int, exists bool) {
+	v := m.addissue_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetIssueCount resets all changes to the "issue_count" field.
+func (m *MemberDayStatMutation) ResetIssueCount() {
+	m.issue_count = nil
+	m.addissue_count = nil
+}
+
+// SetReviewCount sets the "review_count" field.
+func (m *MemberDayStatMutation) SetReviewCount(i int) {
+	m.review_count = &i
+	m.addreview_count = nil
+}
+
+// ReviewCount returns the value of the "review_count" field in the mutation.
+func (m *MemberDayStatMutation) ReviewCount() (r int, exists bool) {
+	v := m.review_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewCount returns the old "review_count" field's value of the MemberDayStat entity.
+// If the MemberDayStat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MemberDayStatMutation) OldReviewCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewCount: %w", err)
+	}
+	return oldValue.ReviewCount, nil
+}
+
+// AddReviewCount adds i to the "review_count" field.
+func (m *MemberDayStatMutation) AddReviewCount(i int) {
+	if m.addreview_count != nil {
+		*m.addreview_count += i
+	} else {
+		m.addreview_count = &i
+	}
+}
+
+// AddedReviewCount returns the value that was added to the "review_count" field in this mutation.
+func (m *MemberDayStatMutation) AddedReviewCount() (r int, exists bool) {
+	v := m.addreview_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetReviewCount resets all changes to the "review_count" field.
+func (m *MemberDayStatMutation) ResetReviewCount() {
+	m.review_count = nil
+	m.addreview_count = nil
+}
+
+// SetAdditions sets the "additions" field.
+func (m *MemberDayStatMutation) SetAdditions(i int) {
+	m.additions = &i
+	m.addadditions = nil
+}
+
+// Additions returns the value of the "additions" field in the mutation.
+func (m *MemberDayStatMutation) Additions() (r int, exists bool) {
+	v := m.additions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdditions returns the old "additions" field's value of the MemberDayStat entity.
+// If the MemberDayStat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MemberDayStatMutation) OldAdditions(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdditions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdditions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdditions: %w", err)
+	}
+	return oldValue.Additions, nil
+}
+
+// AddAdditions adds i to the "additions" field.
+func (m *MemberDayStatMutation) AddAdditions(i int) {
+	if m.addadditions != nil {
+		*m.addadditions += i
+	} else {
+		m.addadditions = &i
+	}
+}
+
+// AddedAdditions returns the value that was added to the "additions" field in this mutation.
+func (m *MemberDayStatMutation) AddedAdditions() (r int, exists bool) {
+	v := m.addadditions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAdditions resets all changes to the "additions" field.
+func (m *MemberDayStatMutation) ResetAdditions() {
+	m.additions = nil
+	m.addadditions = nil
+}
+
+// SetDeletions sets the "deletions" field.
+func (m *MemberDayStatMutation) SetDeletions(i int) {
+	m.deletions = &i
+	m.adddeletions = nil
+}
+
+// Deletions returns the value of the "deletions" field in the mutation.
+func (m *MemberDayStatMutation) Deletions() (r int, exists bool) {
+	v := m.deletions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletions returns the old "deletions" field's value of the MemberDayStat entity.
+// If the MemberDayStat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MemberDayStatMutation) OldDeletions(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletions: %w", err)
+	}
+	return oldValue.Deletions, nil
+}
+
+// AddDeletions adds i to the "deletions" field.
+func (m *MemberDayStatMutation) AddDeletions(i int) {
+	if m.adddeletions != nil {
+		*m.adddeletions += i
+	} else {
+		m.adddeletions = &i
+	}
+}
+
+// AddedDeletions returns the value that was added to the "deletions" field in this mutation.
+func (m *MemberDayStatMutation) AddedDeletions() (r int, exists bool) {
+	v := m.adddeletions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDeletions resets all changes to the "deletions" field.
+func (m *MemberDayStatMutation) ResetDeletions() {
+	m.deletions = nil
+	m.adddeletions = nil
+}
+
+// SetSnapshotID sets the "snapshot" edge to the Snapshot entity by id.
+func (m *MemberDayStatMutation) SetSnapshotID(id int) {
+	m.snapshot = &id
+}
+
+// ClearSnapshot clears the "snapshot" edge to the Snapshot entity.
+func (m *MemberDayStatMutation) ClearSnapshot() {
+	m.clearedsnapshot = true
+}
+
+// SnapshotCleared reports if the "snapshot" edge to the Snapshot entity was cleared.
+func (m *MemberDayStatMutation) SnapshotCleared() bool {
+	return m.clearedsnapshot
+}
+
+// SnapshotID returns the "snapshot" edge ID in the mutation.
+func (m *MemberDayStatMutation) SnapshotID() (id int, exists bool) {
+	if m.snapshot != nil {
+		return *m.snapshot, true
+	}
+	return
+}
+
+// SnapshotIDs returns the "snapshot" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SnapshotID instead. It exists only for internal usage by the builders.
+func (m *MemberDayStatMutation) SnapshotIDs() (ids []int) {
+	if id := m.snapshot; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSnapshot resets all changes to the "snapshot" edge.
+func (m *MemberDayStatMutation) ResetSnapshot() {
+	m.snapshot = nil
+	m.clearedsnapshot = false
+}
+
+// Where appends a list predicates to the MemberDayStatMutation builder.
+func (m *MemberDayStatMutation) Where(ps ...predicate.MemberDayStat) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the MemberDayStatMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *MemberDayStatMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.MemberDayStat, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *MemberDayStatMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *MemberDayStatMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (MemberDayStat).
+func (m *MemberDayStatMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *MemberDayStatMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.login != nil {
+		fields = append(fields, memberdaystat.FieldLogin)
+	}
+	if m.day != nil {
+		fields = append(fields, memberdaystat.FieldDay)
+	}
+	if m.commit_count != nil {
+		fields = append(fields, memberdaystat.FieldCommitCount)
+	}
+	if m.pr_created != nil {
+		fields = append(fields, memberdaystat.FieldPrCreated)
+	}
+	if m.pr_merged != nil {
+		fields = append(fields, memberdaystat.FieldPrMerged)
+	}
+	if m.issue_count != nil {
+		fields = append(fields, memberdaystat.FieldIssueCount)
+	}
+	if m.review_count != nil {
+		fields = append(fields, memberdaystat.FieldReviewCount)
+	}
+	if m.additions != nil {
+		fields = append(fields, memberdaystat.FieldAdditions)
+	}
+	if m.deletions != nil {
+		fields = append(fields, memberdaystat.FieldDeletions)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *MemberDayStatMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case memberdaystat.FieldLogin:
+		return m.Login()
+	case memberdaystat.FieldDay:
+		return m.Day()
+	case memberdaystat.FieldCommitCount:
+		return m.CommitCount()
+	case memberdaystat.FieldPrCreated:
+		return m.PrCreated()
+	case memberdaystat.FieldPrMerged:
+		return m.PrMerged()
+	case memberdaystat.FieldIssueCount:
+		return m.IssueCount()
+	case memberdaystat.FieldReviewCount:
+		return m.ReviewCount()
+	case memberdaystat.FieldAdditions:
+		return m.Additions()
+	case memberdaystat.FieldDeletions:
+		return m.Deletions()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *MemberDayStatMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case memberdaystat.FieldLogin:
+		return m.OldLogin(ctx)
+	case memberdaystat.FieldDay:
+		return m.OldDay(ctx)
+	case memberdaystat.FieldCommitCount:
+		return m.OldCommitCount(ctx)
+	case memberdaystat.FieldPrCreated:
+		return m.OldPrCreated(ctx)
+	case memberdaystat.FieldPrMerged:
+		return m.OldPrMerged(ctx)
+	case memberdaystat.FieldIssueCount:
+		return m.OldIssueCount(ctx)
+	case memberdaystat.FieldReviewCount:
+		return m.OldReviewCount(ctx)
+	case memberdaystat.FieldAdditions:
+		return m.OldAdditions(ctx)
+	case memberdaystat.FieldDeletions:
+		return m.OldDeletions(ctx)
+	}
+	return nil, fmt.Errorf("unknown MemberDayStat field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MemberDayStatMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case memberdaystat.FieldLogin:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLogin(v)
+		return nil
+	case memberdaystat.FieldDay:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDay(v)
+		return nil
+	case memberdaystat.FieldCommitCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCommitCount(v)
+		return nil
+	case memberdaystat.FieldPrCreated:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrCreated(v)
+		return nil
+	case memberdaystat.FieldPrMerged:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrMerged(v)
+		return nil
+	case memberdaystat.FieldIssueCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIssueCount(v)
+		return nil
+	case memberdaystat.FieldReviewCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewCount(v)
+		return nil
+	case memberdaystat.FieldAdditions:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdditions(v)
+		return nil
+	case memberdaystat.FieldDeletions:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletions(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MemberDayStat field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *MemberDayStatMutation) AddedFields() []string {
+	var fields []string
+	if m.addcommit_count != nil {
+		fields = append(fields, memberdaystat.FieldCommitCount)
+	}
+	if m.addpr_created != nil {
+		fields = append(fields, memberdaystat.FieldPrCreated)
+	}
+	if m.addpr_merged != nil {
+		fields = append(fields, memberdaystat.FieldPrMerged)
+	}
+	if m.addissue_count != nil {
+		fields = append(fields, memberdaystat.FieldIssueCount)
+	}
+	if m.addreview_count != nil {
+		fields = append(fields, memberdaystat.FieldReviewCount)
+	}
+	if m.addadditions != nil {
+		fields = append(fields, memberdaystat.FieldAdditions)
+	}
+	if m.adddeletions != nil {
+		fields = append(fields, memberdaystat.FieldDeletions)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *MemberDayStatMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case memberdaystat.FieldCommitCount:
+		return m.AddedCommitCount()
+	case memberdaystat.FieldPrCreated:
+		return m.AddedPrCreated()
+	case memberdaystat.FieldPrMerged:
+		return m.AddedPrMerged()
+	case memberdaystat.FieldIssueCount:
+		return m.AddedIssueCount()
+	case memberdaystat.FieldReviewCount:
+		return m.AddedReviewCount()
+	case memberdaystat.FieldAdditions:
+		return m.AddedAdditions()
+	case memberdaystat.FieldDeletions:
+		return m.AddedDeletions()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MemberDayStatMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case memberdaystat.FieldCommitCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCommitCount(v)
+		return nil
+	case memberdaystat.FieldPrCreated:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPrCreated(v)
+		return nil
+	case memberdaystat.FieldPrMerged:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPrMerged(v)
+		return nil
+	case memberdaystat.FieldIssueCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIssueCount(v)
+		return nil
+	case memberdaystat.FieldReviewCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddReviewCount(v)
+		return nil
+	case memberdaystat.FieldAdditions:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAdditions(v)
+		return nil
+	case memberdaystat.FieldDeletions:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDeletions(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MemberDayStat numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *MemberDayStatMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *MemberDayStatMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *MemberDayStatMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown MemberDayStat nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *MemberDayStatMutation) ResetField(name string) error {
+	switch name {
+	case memberdaystat.FieldLogin:
+		m.ResetLogin()
+		return nil
+	case memberdaystat.FieldDay:
+		m.ResetDay()
+		return nil
+	case memberdaystat.FieldCommitCount:
+		m.ResetCommitCount()
+		return nil
+	case memberdaystat.FieldPrCreated:
+		m.ResetPrCreated()
+		return nil
+	case memberdaystat.FieldPrMerged:
+		m.ResetPrMerged()
+		return nil
+	case memberdaystat.FieldIssueCount:
+		m.ResetIssueCount()
+		return nil
+	case memberdaystat.FieldReviewCount:
+		m.ResetReviewCount()
+		return nil
+	case memberdaystat.FieldAdditions:
+		m.ResetAdditions()
+		return nil
+	case memberdaystat.FieldDeletions:
+		m.ResetDeletions()
+		return nil
+	}
+	return fmt.Errorf("unknown MemberDayStat field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *MemberDayStatMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.snapshot != nil {
+		edges = append(edges, memberdaystat.EdgeSnapshot)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *MemberDayStatMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case memberdaystat.EdgeSnapshot:
+		if id := m.snapshot; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *MemberDayStatMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *MemberDayStatMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *MemberDayStatMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedsnapshot {
+		edges = append(edges, memberdaystat.EdgeSnapshot)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *MemberDayStatMutation) EdgeCleared(name string) bool {
+	switch name {
+	case memberdaystat.EdgeSnapshot:
+		return m.clearedsnapshot
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *MemberDayStatMutation) ClearEdge(name string) error {
+	switch name {
+	case memberdaystat.EdgeSnapshot:
+		m.ClearSnapshot()
+		return nil
+	}
+	return fmt.Errorf("unknown MemberDayStat unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *MemberDayStatMutation) ResetEdge(name string) error {
+	switch name {
+	case memberdaystat.EdgeSnapshot:
+		m.ResetSnapshot()
+		return nil
+	}
+	return fmt.Errorf("unknown MemberDayStat edge %s", name)
+}
 
 // MemberRepoStatMutation represents an operation that mutates the MemberRepoStat nodes in the graph.
 type MemberRepoStatMutation struct {
@@ -3551,6 +4612,9 @@ type SnapshotMutation struct {
 	member_year_stats        map[int]struct{}
 	removedmember_year_stats map[int]struct{}
 	clearedmember_year_stats bool
+	member_day_stats         map[int]struct{}
+	removedmember_day_stats  map[int]struct{}
+	clearedmember_day_stats  bool
 	member_repo_stats        map[int]struct{}
 	removedmember_repo_stats map[int]struct{}
 	clearedmember_repo_stats bool
@@ -3801,6 +4865,60 @@ func (m *SnapshotMutation) ResetMemberYearStats() {
 	m.removedmember_year_stats = nil
 }
 
+// AddMemberDayStatIDs adds the "member_day_stats" edge to the MemberDayStat entity by ids.
+func (m *SnapshotMutation) AddMemberDayStatIDs(ids ...int) {
+	if m.member_day_stats == nil {
+		m.member_day_stats = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.member_day_stats[ids[i]] = struct{}{}
+	}
+}
+
+// ClearMemberDayStats clears the "member_day_stats" edge to the MemberDayStat entity.
+func (m *SnapshotMutation) ClearMemberDayStats() {
+	m.clearedmember_day_stats = true
+}
+
+// MemberDayStatsCleared reports if the "member_day_stats" edge to the MemberDayStat entity was cleared.
+func (m *SnapshotMutation) MemberDayStatsCleared() bool {
+	return m.clearedmember_day_stats
+}
+
+// RemoveMemberDayStatIDs removes the "member_day_stats" edge to the MemberDayStat entity by IDs.
+func (m *SnapshotMutation) RemoveMemberDayStatIDs(ids ...int) {
+	if m.removedmember_day_stats == nil {
+		m.removedmember_day_stats = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.member_day_stats, ids[i])
+		m.removedmember_day_stats[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedMemberDayStats returns the removed IDs of the "member_day_stats" edge to the MemberDayStat entity.
+func (m *SnapshotMutation) RemovedMemberDayStatsIDs() (ids []int) {
+	for id := range m.removedmember_day_stats {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// MemberDayStatsIDs returns the "member_day_stats" edge IDs in the mutation.
+func (m *SnapshotMutation) MemberDayStatsIDs() (ids []int) {
+	for id := range m.member_day_stats {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetMemberDayStats resets all changes to the "member_day_stats" edge.
+func (m *SnapshotMutation) ResetMemberDayStats() {
+	m.member_day_stats = nil
+	m.clearedmember_day_stats = false
+	m.removedmember_day_stats = nil
+}
+
 // AddMemberRepoStatIDs adds the "member_repo_stats" edge to the MemberRepoStat entity by ids.
 func (m *SnapshotMutation) AddMemberRepoStatIDs(ids ...int) {
 	if m.member_repo_stats == nil {
@@ -3988,12 +5106,15 @@ func (m *SnapshotMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SnapshotMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.member_stats != nil {
 		edges = append(edges, snapshot.EdgeMemberStats)
 	}
 	if m.member_year_stats != nil {
 		edges = append(edges, snapshot.EdgeMemberYearStats)
+	}
+	if m.member_day_stats != nil {
+		edges = append(edges, snapshot.EdgeMemberDayStats)
 	}
 	if m.member_repo_stats != nil {
 		edges = append(edges, snapshot.EdgeMemberRepoStats)
@@ -4017,6 +5138,12 @@ func (m *SnapshotMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case snapshot.EdgeMemberDayStats:
+		ids := make([]ent.Value, 0, len(m.member_day_stats))
+		for id := range m.member_day_stats {
+			ids = append(ids, id)
+		}
+		return ids
 	case snapshot.EdgeMemberRepoStats:
 		ids := make([]ent.Value, 0, len(m.member_repo_stats))
 		for id := range m.member_repo_stats {
@@ -4029,12 +5156,15 @@ func (m *SnapshotMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SnapshotMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedmember_stats != nil {
 		edges = append(edges, snapshot.EdgeMemberStats)
 	}
 	if m.removedmember_year_stats != nil {
 		edges = append(edges, snapshot.EdgeMemberYearStats)
+	}
+	if m.removedmember_day_stats != nil {
+		edges = append(edges, snapshot.EdgeMemberDayStats)
 	}
 	if m.removedmember_repo_stats != nil {
 		edges = append(edges, snapshot.EdgeMemberRepoStats)
@@ -4058,6 +5188,12 @@ func (m *SnapshotMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case snapshot.EdgeMemberDayStats:
+		ids := make([]ent.Value, 0, len(m.removedmember_day_stats))
+		for id := range m.removedmember_day_stats {
+			ids = append(ids, id)
+		}
+		return ids
 	case snapshot.EdgeMemberRepoStats:
 		ids := make([]ent.Value, 0, len(m.removedmember_repo_stats))
 		for id := range m.removedmember_repo_stats {
@@ -4070,12 +5206,15 @@ func (m *SnapshotMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SnapshotMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedmember_stats {
 		edges = append(edges, snapshot.EdgeMemberStats)
 	}
 	if m.clearedmember_year_stats {
 		edges = append(edges, snapshot.EdgeMemberYearStats)
+	}
+	if m.clearedmember_day_stats {
+		edges = append(edges, snapshot.EdgeMemberDayStats)
 	}
 	if m.clearedmember_repo_stats {
 		edges = append(edges, snapshot.EdgeMemberRepoStats)
@@ -4091,6 +5230,8 @@ func (m *SnapshotMutation) EdgeCleared(name string) bool {
 		return m.clearedmember_stats
 	case snapshot.EdgeMemberYearStats:
 		return m.clearedmember_year_stats
+	case snapshot.EdgeMemberDayStats:
+		return m.clearedmember_day_stats
 	case snapshot.EdgeMemberRepoStats:
 		return m.clearedmember_repo_stats
 	}
@@ -4114,6 +5255,9 @@ func (m *SnapshotMutation) ResetEdge(name string) error {
 		return nil
 	case snapshot.EdgeMemberYearStats:
 		m.ResetMemberYearStats()
+		return nil
+	case snapshot.EdgeMemberDayStats:
+		m.ResetMemberDayStats()
 		return nil
 	case snapshot.EdgeMemberRepoStats:
 		m.ResetMemberRepoStats()

@@ -36,9 +36,24 @@ type UserStatistics {
   peakActivityYear: Int!
   peakActivityCommits: Int!
   yearlyStats: [YearlyStatistics!]!
+  dailyStats: [DailyStatistics!]!
   topRepositories: [RepositoryActivity!]!
   longTermRepositories: [RepositoryActivity!]!
   roleTransition: [RoleTransitionPoint!]!
+}
+
+# DailyStatistics is one member's (or, for teamDailyStats, the team's) aggregated
+# metrics for a single day. The date is an ISO "YYYY-MM-DD" string normalized to
+# UTC; date-range filtering and week/month bucketing are computed on the frontend.
+type DailyStatistics {
+  date: String!
+  commitCount: Int!
+  prCreated: Int!
+  prMerged: Int!
+  issueCount: Int!
+  reviewCount: Int!
+  totalAdditions: Int!
+  totalDeletions: Int!
 }
 
 # YearlyStatistics is one member's aggregated metrics for a single year.
@@ -125,6 +140,9 @@ type Query {
   member(login: String!): UserStatistics
   # Team-wide totals and aggregates.
   teamSummary: TeamSummary!
+  # Team-wide daily totals as an ascending time series (date-range filtering and
+  # bucketing are done on the frontend).
+  teamDailyStats: [DailyStatistics!]!
   # Repository-axis cross aggregation across all repositories.
   repositories: [RepositoryStats!]!
   # A single repository's cross aggregation.

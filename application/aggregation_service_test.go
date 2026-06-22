@@ -2,6 +2,8 @@ package application
 
 import (
 	"testing"
+
+	"github.com/Tattsum/github-analytics/domain"
 )
 
 func TestSummarizeTeam(t *testing.T) {
@@ -396,5 +398,41 @@ func assertContributors(t *testing.T, repoIdx int, got, want []*RepositoryContri
 		if gotC.Deletions != wantC.Deletions {
 			t.Errorf("repo[%d].contributor[%d].Deletions = %d, want %d", repoIdx, j, gotC.Deletions, wantC.Deletions)
 		}
+	}
+}
+
+func TestAggregateTeamDaily(t *testing.T) {
+	t.Parallel()
+
+	rows := []*domain.DailyStatistics{
+		{Date: "2024-01-09", CommitCount: 4, PRCreated: 1, ReviewCount: 2, TotalAdditions: 40},
+		{Date: "2024-01-08", CommitCount: 3, PRCreated: 2, ReviewCount: 1, TotalAdditions: 30},
+		{Date: "2024-01-08", CommitCount: 5, PRCreated: 1, ReviewCount: 4, TotalAdditions: 50},
+	}
+
+	got := AggregateTeamDaily(rows)
+
+	if len(got) != 2 {
+		t.Fatalf("AggregateTeamDaily() len = %d, want 2", len(got))
+	}
+
+	if got[0].Date != "2024-01-08" || got[1].Date != "2024-01-09" {
+		t.Fatalf("AggregateTeamDaily() not sorted ascending by date: %q, %q", got[0].Date, got[1].Date)
+	}
+
+	if got[0].CommitCount != 8 || got[0].PRCreated != 3 || got[0].ReviewCount != 5 || got[0].TotalAdditions != 80 {
+		t.Errorf("AggregateTeamDaily() 2024-01-08 = %+v, want commits 8 / prCreated 3 / reviews 5 / additions 80", got[0])
+	}
+
+	if got[1].CommitCount != 4 {
+		t.Errorf("AggregateTeamDaily() 2024-01-09 commits = %d, want 4", got[1].CommitCount)
+	}
+}
+
+func TestAggregateTeamDaily_Empty(t *testing.T) {
+	t.Parallel()
+
+	if got := AggregateTeamDaily(nil); len(got) != 0 {
+		t.Errorf("AggregateTeamDaily(nil) = %+v, want empty", got)
 	}
 }

@@ -9,6 +9,18 @@ import (
 	"github.com/Tattsum/github-analytics/infrastructure/ent"
 )
 
+// The MemberDayStatFunc type is an adapter to allow the use of ordinary
+// function as MemberDayStat mutator.
+type MemberDayStatFunc func(context.Context, *ent.MemberDayStatMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MemberDayStatFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MemberDayStatMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MemberDayStatMutation", m)
+}
+
 // The MemberRepoStatFunc type is an adapter to allow the use of ordinary
 // function as MemberRepoStat mutator.
 type MemberRepoStatFunc func(context.Context, *ent.MemberRepoStatMutation) (ent.Value, error)

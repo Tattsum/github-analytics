@@ -19,6 +19,7 @@ type fakeSnapshotReader struct {
 	members     []*application.MemberStats
 	member      *domain.UserStatistics
 	teamSummary *application.TeamSummary
+	teamDaily   []*domain.DailyStatistics
 	repos       []*application.RepositoryStats
 	repo        *application.RepositoryStats
 	err         error
@@ -34,6 +35,10 @@ func (f *fakeSnapshotReader) Member(_ context.Context, _ string) (*domain.UserSt
 
 func (f *fakeSnapshotReader) TeamSummary(_ context.Context) (*application.TeamSummary, error) {
 	return f.teamSummary, f.err
+}
+
+func (f *fakeSnapshotReader) TeamDailyStats(_ context.Context) ([]*domain.DailyStatistics, error) {
+	return f.teamDaily, f.err
 }
 
 func (f *fakeSnapshotReader) Repositories(_ context.Context) ([]*application.RepositoryStats, error) {
@@ -284,6 +289,56 @@ func TestQueryResolver_TeamSummary(t *testing.T) {
 			r := newTestQueryResolver(t, tt.reader)
 
 			got, err := r.TeamSummary(context.Background())
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestQueryResolver_TeamDailyStats(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		reader  *fakeSnapshotReader
+		want    []*model.DailyStatistics
+		wantErr bool
+	}{
+		{
+			name: "maps daily series preserving order",
+			reader: &fakeSnapshotReader{
+				teamDaily: []*domain.DailyStatistics{
+					{Date: "2024-01-08", CommitCount: 8, PRCreated: 3, PRMerged: 2, IssueCount: 1, ReviewCount: 5, TotalAdditions: 80, TotalDeletions: 20},
+					{Date: "2024-01-09", CommitCount: 4, PRCreated: 1, PRMerged: 1, IssueCount: 0, ReviewCount: 2, TotalAdditions: 40, TotalDeletions: 10},
+				},
+			},
+			want: []*model.DailyStatistics{
+				{Date: "2024-01-08", CommitCount: 8, PrCreated: 3, PrMerged: 2, IssueCount: 1, ReviewCount: 5, TotalAdditions: 80, TotalDeletions: 20},
+				{Date: "2024-01-09", CommitCount: 4, PrCreated: 1, PrMerged: 1, IssueCount: 0, ReviewCount: 2, TotalAdditions: 40, TotalDeletions: 10},
+			},
+		},
+		{
+			name:   "no data yields empty slice",
+			reader: &fakeSnapshotReader{teamDaily: nil},
+			want:   []*model.DailyStatistics{},
+		},
+		{
+			name:    "reader error is wrapped",
+			reader:  &fakeSnapshotReader{err: errors.New("boom")},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			r := newTestQueryResolver(t, tt.reader)
+
+			got, err := r.TeamDailyStats(context.Background())
 			if tt.wantErr {
 				require.Error(t, err)
 				return

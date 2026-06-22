@@ -29,19 +29,24 @@ github-analytics/
 ## データの蓄積方法（スナップショット）
 
 バッチ実行 1 回 = 1 スナップショット（`captured_at`）。スナップショットごとに集計済みメトリクスを保存します
-（メンバー単位のスカラー、メンバー × 年、メンバー × リポジトリ（全リポジトリ））。Web はデフォルトで
+（メンバー単位のスカラー、メンバー × 年、メンバー × 日、メンバー × リポジトリ（全リポジトリ））。Web はデフォルトで
 **最新スナップショット**を読み込みます。
+
+メンバー × 日（`MemberDayStat`）は活動を `YYYY-MM-DD`（UTC 基準で丸めた日）単位に集計したもので、
+任意の日付範囲での絞り込みと時系列推移グラフのデータ源になります。日付範囲フィルタと週 / 月へのバケット集約は
+ランキング・比較と同様に**フロントエンドで計算**します。
 
 ## ストレージ / API / フロントエンド
 
 - **ストレージ**: PostgreSQL（Docker）。ORM は ent、ドライバは pgx（stdlib アダプタ）
 - **API**: gqlgen による GraphQL（スキーマファースト）。主なクエリ:
   - `members: [MemberStats!]!` — メンバー横断の比較可能スカラー（ランキング・比較用）
-  - `member(login: String!): UserStatistics` — ドリルダウン（年次推移・TOPリポジトリ等）
+  - `member(login: String!): UserStatistics` — ドリルダウン（年次推移・日次推移・TOPリポジトリ等）
   - `teamSummary: TeamSummary!` — チーム合計・集計
+  - `teamDailyStats: [DailyStatistics!]!` — チーム全体の日次合計（日付昇順の時系列）
   - `repositories: [RepositoryStats!]!` — リポジトリ軸の横断集計
   - `repository(nameWithOwner: String!): RepositoryStats`
-  - 並び替え / 順位付け / 比較は GraphQL ではなく**フロントエンドで計算**します。
+  - 並び替え / 順位付け / 比較・日付範囲の絞り込みは GraphQL ではなく**フロントエンドで計算**します。
 - **フロントエンド**: React + Vite の SPA。パッケージマネージャは pnpm。GraphQL クライアントは urql、
   型は graphql-codegen（client preset）、チャートは Recharts。本番は Go バイナリが `frontend/dist` を
   埋め込み**同一オリジン**で配信し、開発時は Vite が `/query` を Go サーバへプロキシします。
@@ -56,6 +61,9 @@ github-analytics/
 - Review 数（PRレビュー）
 - 変更行数（additions / deletions、**PR由来のみ**。コミット単位の行数はAPIから取得できません）
 - PR / Review 比率
+
+これらの指標はメンバー軸・リポジトリ軸に加え、**時間軸**でも扱えます。チーム概要・メンバー詳細では、
+任意の日付範囲（日単位）で絞り込み、日 / 週 / 月のいずれかの粒度で時系列推移グラフを表示できます。
 
 > **v2 の予定（未実装）**: レビュー時間（review time）の指標は PR の timeline 取得が必要なため、
 > 意図的に v1 では実装していません。

@@ -20,6 +20,8 @@ const (
 	EdgeMemberStats = "member_stats"
 	// EdgeMemberYearStats holds the string denoting the member_year_stats edge name in mutations.
 	EdgeMemberYearStats = "member_year_stats"
+	// EdgeMemberDayStats holds the string denoting the member_day_stats edge name in mutations.
+	EdgeMemberDayStats = "member_day_stats"
 	// EdgeMemberRepoStats holds the string denoting the member_repo_stats edge name in mutations.
 	EdgeMemberRepoStats = "member_repo_stats"
 	// Table holds the table name of the snapshot in the database.
@@ -38,6 +40,13 @@ const (
 	MemberYearStatsInverseTable = "member_year_stats"
 	// MemberYearStatsColumn is the table column denoting the member_year_stats relation/edge.
 	MemberYearStatsColumn = "snapshot_member_year_stats"
+	// MemberDayStatsTable is the table that holds the member_day_stats relation/edge.
+	MemberDayStatsTable = "member_day_stats"
+	// MemberDayStatsInverseTable is the table name for the MemberDayStat entity.
+	// It exists in this package in order to avoid circular dependency with the "memberdaystat" package.
+	MemberDayStatsInverseTable = "member_day_stats"
+	// MemberDayStatsColumn is the table column denoting the member_day_stats relation/edge.
+	MemberDayStatsColumn = "snapshot_member_day_stats"
 	// MemberRepoStatsTable is the table that holds the member_repo_stats relation/edge.
 	MemberRepoStatsTable = "member_repo_stats"
 	// MemberRepoStatsInverseTable is the table name for the MemberRepoStat entity.
@@ -109,6 +118,20 @@ func ByMemberYearStats(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByMemberDayStatsCount orders the results by member_day_stats count.
+func ByMemberDayStatsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newMemberDayStatsStep(), opts...)
+	}
+}
+
+// ByMemberDayStats orders the results by member_day_stats terms.
+func ByMemberDayStats(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newMemberDayStatsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByMemberRepoStatsCount orders the results by member_repo_stats count.
 func ByMemberRepoStatsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -134,6 +157,13 @@ func newMemberYearStatsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(MemberYearStatsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, MemberYearStatsTable, MemberYearStatsColumn),
+	)
+}
+func newMemberDayStatsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(MemberDayStatsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, MemberDayStatsTable, MemberDayStatsColumn),
 	)
 }
 func newMemberRepoStatsStep() *sqlgraph.Step {

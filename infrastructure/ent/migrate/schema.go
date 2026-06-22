@@ -8,6 +8,41 @@ import (
 )
 
 var (
+	// MemberDayStatsColumns holds the columns for the "member_day_stats" table.
+	MemberDayStatsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "login", Type: field.TypeString},
+		{Name: "day", Type: field.TypeString},
+		{Name: "commit_count", Type: field.TypeInt, Default: 0},
+		{Name: "pr_created", Type: field.TypeInt, Default: 0},
+		{Name: "pr_merged", Type: field.TypeInt, Default: 0},
+		{Name: "issue_count", Type: field.TypeInt, Default: 0},
+		{Name: "review_count", Type: field.TypeInt, Default: 0},
+		{Name: "additions", Type: field.TypeInt, Default: 0},
+		{Name: "deletions", Type: field.TypeInt, Default: 0},
+		{Name: "snapshot_member_day_stats", Type: field.TypeInt},
+	}
+	// MemberDayStatsTable holds the schema information for the "member_day_stats" table.
+	MemberDayStatsTable = &schema.Table{
+		Name:       "member_day_stats",
+		Columns:    MemberDayStatsColumns,
+		PrimaryKey: []*schema.Column{MemberDayStatsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "member_day_stats_snapshots_member_day_stats",
+				Columns:    []*schema.Column{MemberDayStatsColumns[10]},
+				RefColumns: []*schema.Column{SnapshotsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "memberdaystat_login_day_snapshot_member_day_stats",
+				Unique:  true,
+				Columns: []*schema.Column{MemberDayStatsColumns[1], MemberDayStatsColumns[2], MemberDayStatsColumns[10]},
+			},
+		},
+	}
 	// MemberRepoStatsColumns holds the columns for the "member_repo_stats" table.
 	MemberRepoStatsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -141,6 +176,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		MemberDayStatsTable,
 		MemberRepoStatsTable,
 		MemberStatsTable,
 		MemberYearStatsTable,
@@ -149,6 +185,7 @@ var (
 )
 
 func init() {
+	MemberDayStatsTable.ForeignKeys[0].RefTable = SnapshotsTable
 	MemberRepoStatsTable.ForeignKeys[0].RefTable = SnapshotsTable
 	MemberStatsTable.ForeignKeys[0].RefTable = SnapshotsTable
 	MemberYearStatsTable.ForeignKeys[0].RefTable = SnapshotsTable

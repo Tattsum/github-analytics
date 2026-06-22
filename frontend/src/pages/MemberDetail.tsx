@@ -5,6 +5,7 @@ import { MemberTotals } from "./memberDetail/MemberTotals";
 import { RepositoryActivityList } from "./memberDetail/RepositoryActivityList";
 import { RoleTransition } from "./memberDetail/RoleTransition";
 import { YearlyTrendChart } from "./memberDetail/YearlyTrendChart";
+import { TrendSection } from "../components/TrendSection";
 
 // Drill-down query for a single member. Reads the latest snapshot server-side;
 // all ranking/sorting/comparison is handled on other pages, so this is purely
@@ -27,6 +28,16 @@ const MemberDetailQuery = graphql(`
       peakActivityCommits
       yearlyStats {
         year
+        commitCount
+        prCreated
+        prMerged
+        reviewCount
+        issueCount
+        totalAdditions
+        totalDeletions
+      }
+      dailyStats {
+        date
         commitCount
         prCreated
         prMerged
@@ -102,6 +113,11 @@ export function MemberDetail() {
       <section style={sectionStyle}>
         <h2>累計</h2>
         <MemberTotals stats={member} />
+      </section>
+
+      <section style={sectionStyle}>
+        <h2>活動推移（期間指定）</h2>
+        <TrendSection dailyStats={member.dailyStats} emptyMessage="対象期間の活動データはありません。" />
       </section>
 
       <section style={sectionStyle}>

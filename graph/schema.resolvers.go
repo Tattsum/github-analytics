@@ -46,6 +46,19 @@ func (r *queryResolver) TeamSummary(ctx context.Context) (*model.TeamSummary, er
 	return toTeamSummary(summary), nil
 }
 
+// TeamDailyStats is the resolver for the teamDailyStats field.
+func (r *queryResolver) TeamDailyStats(ctx context.Context) ([]*model.DailyStatistics, error) {
+	daily, err := r.reader.TeamDailyStats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("resolve teamDailyStats: %w", err)
+	}
+	out := make([]*model.DailyStatistics, 0, len(daily))
+	for _, d := range daily {
+		out = append(out, toDailyStatistic(d))
+	}
+	return out, nil
+}
+
 // Repositories is the resolver for the repositories field.
 func (r *queryResolver) Repositories(ctx context.Context) ([]*model.RepositoryStats, error) {
 	repos, err := r.reader.Repositories(ctx)

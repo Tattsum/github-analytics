@@ -77,7 +77,7 @@ func TestBuildStatCreates_MemberScalars(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, _, _ := buildStatCreates(tt.in(t))
+			got, _, _, _ := buildStatCreates(tt.in(t))
 
 			if len(got) != len(tt.want) {
 				t.Fatalf("member stat count = %d, want %d", len(got), len(tt.want))
@@ -103,7 +103,7 @@ func TestBuildStatCreates_YearStats(t *testing.T) {
 	// A nil yearly entry must be skipped without panicking.
 	m.YearlyStats[2019] = nil
 
-	_, yearStats, _ := buildStatCreates(&application.Snapshot{Members: []*domain.UserStatistics{m}})
+	_, yearStats, _, _ := buildStatCreates(&application.Snapshot{Members: []*domain.UserStatistics{m}})
 
 	if len(yearStats) != 2 {
 		t.Fatalf("year stat count = %d, want 2", len(yearStats))
@@ -124,6 +124,38 @@ func TestBuildStatCreates_YearStats(t *testing.T) {
 	}
 }
 
+func TestBuildStatCreates_DayStats(t *testing.T) {
+	t.Parallel()
+
+	m := newMember(t, "dev")
+	m.DailyStats = map[string]*domain.DailyStatistics{
+		"2024-01-08": {Date: "2024-01-08", CommitCount: 8, PRCreated: 3, PRMerged: 2, IssueCount: 1, ReviewCount: 5, TotalAdditions: 80, TotalDeletions: 20},
+		"2024-01-09": {Date: "2024-01-09", CommitCount: 4, PRCreated: 1, PRMerged: 1, IssueCount: 0, ReviewCount: 2, TotalAdditions: 40, TotalDeletions: 10},
+	}
+	// A nil daily entry must be skipped without panicking.
+	m.DailyStats["2024-01-10"] = nil
+
+	_, _, dayStats, _ := buildStatCreates(&application.Snapshot{Members: []*domain.UserStatistics{m}})
+
+	if len(dayStats) != 2 {
+		t.Fatalf("day stat count = %d, want 2", len(dayStats))
+	}
+
+	// Map iteration order is non-deterministic; sort by day for comparison.
+	sort.Slice(dayStats, func(i, j int) bool { return dayStats[i].day < dayStats[j].day })
+
+	want := []memberDayStatInput{
+		{login: "dev", day: "2024-01-08", commitCount: 8, prCreated: 3, prMerged: 2, issueCount: 1, reviewCount: 5, additions: 80, deletions: 20},
+		{login: "dev", day: "2024-01-09", commitCount: 4, prCreated: 1, prMerged: 1, issueCount: 0, reviewCount: 2, additions: 40, deletions: 10},
+	}
+
+	for i := range want {
+		if dayStats[i] != want[i] {
+			t.Errorf("day[%d] = %+v, want %+v", i, dayStats[i], want[i])
+		}
+	}
+}
+
 func TestBuildStatCreates_RepoStats(t *testing.T) {
 	t.Parallel()
 
@@ -134,7 +166,7 @@ func TestBuildStatCreates_RepoStats(t *testing.T) {
 		{Repository: "org/repo-b", CommitCount: 2, PRCount: 1, IssueCount: 0, ReviewCount: 0, TotalAdditions: 10, TotalDeletions: 5},
 	}
 
-	_, _, repoStats := buildStatCreates(&application.Snapshot{Members: []*domain.UserStatistics{m}})
+	_, _, _, repoStats := buildStatCreates(&application.Snapshot{Members: []*domain.UserStatistics{m}})
 
 	if len(repoStats) != 2 {
 		t.Fatalf("repo stat count = %d, want 2", len(repoStats))
@@ -166,7 +198,7 @@ func TestBuildStatCreates_PersistsAllRepositories(t *testing.T) {
 		})
 	}
 
-	_, _, repoStats := buildStatCreates(&application.Snapshot{Members: []*domain.UserStatistics{m}})
+	_, _, _, repoStats := buildStatCreates(&application.Snapshot{Members: []*domain.UserStatistics{m}})
 
 	if len(repoStats) != repoCount {
 		t.Fatalf("repo stat count = %d, want %d (all repositories must be stored)", len(repoStats), repoCount)

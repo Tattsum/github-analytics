@@ -106,6 +106,7 @@ func toUserStatistics(s *domain.UserStatistics) *model.UserStatistics {
 		PeakActivityYear:     s.PeakActivityYear,
 		PeakActivityCommits:  s.PeakActivityCommits,
 		YearlyStats:          toYearlyStatistics(s.YearlyStats),
+		DailyStats:           toDailyStatistics(s.DailyStats),
 		TopRepositories:      toRepositoryActivities(s.TopRepositories),
 		LongTermRepositories: toRepositoryActivities(s.LongTermRepositories),
 		RoleTransition:       toRoleTransitions(s.RoleTransition),
@@ -140,6 +141,36 @@ func toYearlyStatistics(stats map[int]*domain.YearlyStatistics) []*model.YearlyS
 		})
 	}
 	return out
+}
+
+// toDailyStatistics maps a date-keyed map into a slice sorted by date ascending
+// so the frontend receives a stable, chronological time series.
+func toDailyStatistics(stats map[string]*domain.DailyStatistics) []*model.DailyStatistics {
+	dates := make([]string, 0, len(stats))
+	for date := range stats {
+		dates = append(dates, date)
+	}
+	sort.Strings(dates)
+
+	out := make([]*model.DailyStatistics, 0, len(dates))
+	for _, date := range dates {
+		out = append(out, toDailyStatistic(stats[date]))
+	}
+	return out
+}
+
+// toDailyStatistic maps a single domain.DailyStatistics to its GraphQL model.
+func toDailyStatistic(d *domain.DailyStatistics) *model.DailyStatistics {
+	return &model.DailyStatistics{
+		Date:           d.Date,
+		CommitCount:    d.CommitCount,
+		PrCreated:      d.PRCreated,
+		PrMerged:       d.PRMerged,
+		IssueCount:     d.IssueCount,
+		ReviewCount:    d.ReviewCount,
+		TotalAdditions: d.TotalAdditions,
+		TotalDeletions: d.TotalDeletions,
+	}
 }
 
 // toRepositoryActivities maps domain repository activities to their GraphQL models.
