@@ -23,35 +23,37 @@ export function RepositoryActivityList({
   const rows = [...repositories].sort(byCommitsDesc);
 
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-      <thead>
-        <tr style={{ textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
-          <th style={cellStyle}>リポジトリ</th>
-          <th style={cellStyle}>コミット</th>
-          <th style={cellStyle}>PR</th>
-          <th style={cellStyle}>レビュー</th>
-          <th style={cellStyle}>Issue</th>
-          <th style={cellStyle}>+/-</th>
-          {showSpan && <th style={cellStyle}>期間（年）</th>}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.repository} style={{ borderBottom: "1px solid #f3f4f6" }}>
-            <td style={cellStyle}>{r.repository}</td>
-            <td style={cellStyle}>{r.commitCount.toLocaleString()}</td>
-            <td style={cellStyle}>{r.prCount.toLocaleString()}</td>
-            <td style={cellStyle}>{r.reviewCount.toLocaleString()}</td>
-            <td style={cellStyle}>{r.issueCount.toLocaleString()}</td>
-            <td style={cellStyle}>
-              +{r.totalAdditions.toLocaleString()} / -{r.totalDeletions.toLocaleString()}
-            </td>
-            {showSpan && <td style={cellStyle}>{activitySpanYears(r).toFixed(1)}</td>}
+    <div css={{ overflowX: "auto" }}>
+      <table css={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: 14 }}>
+        <thead>
+          <tr css={{ textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
+            <th css={cellStyle}>リポジトリ</th>
+            <th css={cellStyle}>コミット</th>
+            <th css={cellStyle}>PR</th>
+            <th css={cellStyle}>レビュー</th>
+            <th css={cellStyle}>Issue</th>
+            <th css={cellStyle}>+/-</th>
+            {showSpan && <th css={cellStyle}>期間（年）</th>}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.repository} css={{ borderBottom: "1px solid #f3f4f6" }}>
+              <td css={cellStyle}>{r.repository}</td>
+              <td css={cellStyle}>{r.commitCount.toLocaleString()}</td>
+              <td css={cellStyle}>{r.prCount.toLocaleString()}</td>
+              <td css={cellStyle}>{r.reviewCount.toLocaleString()}</td>
+              <td css={cellStyle}>{r.issueCount.toLocaleString()}</td>
+              <td css={cellStyle}>
+                +{r.totalAdditions.toLocaleString()} / -{r.totalDeletions.toLocaleString()}
+              </td>
+              {showSpan && <td css={cellStyle}>{activitySpanYears(r).toFixed(1)}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
-const cellStyle: React.CSSProperties = { padding: "0.4rem 0.6rem" };
+const cellStyle = { padding: "0.4rem 0.6rem" } as const;

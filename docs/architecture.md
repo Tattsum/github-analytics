@@ -16,7 +16,7 @@ github-analytics/
 │       └── snapshotdb/        # スナップショットの読み書き（SnapshotWriter / SnapshotReader）
 ├── presentation/              # ファイル出力フォーマッター（CLI file モード用）
 ├── graph/                     # gqlgen: GraphQLスキーマ（*.graphqls）・生成コード・リゾルバ
-├── frontend/                  # React + Vite SPA（urql + graphql-codegen + Recharts）
+├── frontend/                  # React + Vite SPA（urql + graphql-codegen + Recharts + emotion）
 ├── docs/                      # プロジェクトドキュメント（本ディレクトリ）
 ├── docker-compose.yml         # Postgres + Web アプリ
 ├── Dockerfile                 # SPAビルド → Goサーバへ frontend/dist を埋め込み
@@ -64,6 +64,10 @@ github-analytics/
   - リポジトリ詳細ページには**メンバーの活動推移の比較**セクションがあり、`repository.contributors[].dailyStats`
     を用いてそのリポジトリ内の各メンバーの日別活動を重ね合わせます。指標選択・期間/粒度・対象メンバーの複数選択は
     リポジトリ軸と共通の軸非依存コンポーネント `EntityTrendOverlay` で行います。
+  - **スタイリング**: emotion（`css` プロップ + オブジェクト構文）。Vite / tsconfig の `jsxImportSource`
+    を `@emotion/react` に設定。レスポンシブはデスクトップファースト（既存値を残し `@media (max-width)` で
+    上書き）で、ブレークポイントは `src/styles/breakpoints.ts`（タブレット 1024px / スマホ 768px）に集約。
+    スマホ幅ではヘッダがハンバーガーメニューに、テーブルが横スクロール（`overflow-x`）に切り替わります。
 
 ## 指標（v1）
 

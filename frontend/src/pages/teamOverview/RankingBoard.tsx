@@ -37,15 +37,15 @@ export function RankingBoard({ members }: { members: readonly MemberStats[] }) {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-        <label htmlFor="ranking-metric" style={{ fontWeight: 600 }}>
+      <div css={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+        <label htmlFor="ranking-metric" css={{ fontWeight: 600 }}>
           指標
         </label>
         <select
           id="ranking-metric"
           value={metricKey}
           onChange={(event) => setMetricKey(event.target.value as MetricKey)}
-          style={{ padding: "0.35rem 0.5rem", borderRadius: "0.375rem", border: "1px solid #d1d5db" }}
+          css={{ padding: "0.35rem 0.5rem", borderRadius: "0.375rem", border: "1px solid #d1d5db" }}
         >
           {METRICS.map((m) => (
             <option key={m.key} value={m.key}>
@@ -63,30 +63,32 @@ export function RankingBoard({ members }: { members: readonly MemberStats[] }) {
         />
       )}
 
-      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
-        <thead>
-          <tr style={{ textAlign: "left", borderBottom: "2px solid #e5e7eb" }}>
-            <th style={{ padding: "0.5rem", width: "3rem" }}>#</th>
-            <th style={{ padding: "0.5rem" }}>メンバー</th>
-            <th style={{ padding: "0.5rem", textAlign: "right" }}>{metric.label}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ranked.map(({ item, rank: position }) => (
-            <tr key={item.login} style={{ borderBottom: "1px solid #f3f4f6" }}>
-              <td style={{ padding: "0.5rem", color: "#6b7280" }}>{position}</td>
-              <td style={{ padding: "0.5rem" }}>
-                <Link to={`/members/${encodeURIComponent(item.login)}`}>
-                  {item.name || item.login}
-                </Link>
-              </td>
-              <td style={{ padding: "0.5rem", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                {metric.format(metric.select(item))}
-              </td>
+      <div css={{ overflowX: "auto", marginTop: "1rem" }}>
+        <table css={{ width: "100%", minWidth: 420, borderCollapse: "collapse" }}>
+          <thead>
+            <tr css={{ textAlign: "left", borderBottom: "2px solid #e5e7eb" }}>
+              <th css={{ padding: "0.5rem", width: "3rem" }}>#</th>
+              <th css={{ padding: "0.5rem" }}>メンバー</th>
+              <th css={{ padding: "0.5rem", textAlign: "right" }}>{metric.label}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {ranked.map(({ item, rank: position }) => (
+              <tr key={item.login} css={{ borderBottom: "1px solid #f3f4f6" }}>
+                <td css={{ padding: "0.5rem", color: "#6b7280" }}>{position}</td>
+                <td css={{ padding: "0.5rem" }}>
+                  <Link to={`/members/${encodeURIComponent(item.login)}`}>
+                    {item.name || item.login}
+                  </Link>
+                </td>
+                <td css={{ padding: "0.5rem", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                  {metric.format(metric.select(item))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

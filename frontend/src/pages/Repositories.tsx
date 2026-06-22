@@ -76,7 +76,7 @@ export function Repositories() {
       {error && <p>リポジトリを読み込めませんでした: {error.message}</p>}
       {data && (
         <>
-          <div style={{ margin: "1rem 0" }}>
+          <div css={{ margin: "1rem 0" }}>
             <MetricPicker
               label="並び替え"
               options={repositoryMetrics}
@@ -93,15 +93,15 @@ export function Repositories() {
             />
           )}
 
-          <div style={{ marginTop: "1.5rem", overflowX: "auto" }}>
+          <div css={{ marginTop: "1.5rem", overflowX: "auto" }}>
             <RankingTable items={repositories} metric={metric} columns={columns} />
           </div>
         </>
       )}
 
-      <section style={{ marginTop: "2.5rem" }}>
+      <section css={{ marginTop: "2.5rem" }}>
         <h2>活動推移の比較</h2>
-        <p style={{ color: "#6b7280", marginTop: 0 }}>
+        <p css={{ color: "#6b7280", marginTop: 0 }}>
           複数リポジトリの日別活動を重ね合わせて比較します。オーナーで絞り込めば組織内リポジトリ横断の推移を確認できます。
         </p>
         <RepoTrendComparison />

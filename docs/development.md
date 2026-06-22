@@ -1,7 +1,7 @@
 # 開発
 
 ツールチェーンは mise（`mise.toml`）、フロントエンドの依存は pnpm で管理します。
-開発時は Vite と Go サーバを別々のターミナルで起動し、Vite が `/query` を Go サーバ（:8080）へプロキシします。
+開発時は Vite と Go サーバを別々のターミナルで起動し、Vite が `/query` を Go サーバ（:8090）へプロキシします。
 
 ```bash
 # ターミナル1: Go サーバ（GraphQL API）
@@ -74,6 +74,25 @@ make test-short
 # フロントエンドのテスト
 cd frontend && pnpm test
 ```
+
+### 視覚リグレッションテスト（Playwright・ローカルのみ）
+
+レスポンシブ対応の非劣化を担保するため、Playwright でページのスクリーンショットを比較します。
+GraphQL レスポンスは `tests/visual` 配下の固定フィクスチャを `page.route` でモックするため、
+Go バックエンドや Postgres の起動は不要です（CI には組み込みません）。
+
+```bash
+cd frontend
+
+# 全 4 ページ × 3 幅（1280 / 768 / 375）＋ ハンバーガー展開を比較
+pnpm test:visual
+
+# 意図した見た目の変更を反映してベースラインを更新
+pnpm test:visual:update
+```
+
+ベースライン画像は `tests/visual/__screenshots__/` にコミットします。
+PC 幅（1280）のベースラインは emotion 移行前に取得した非劣化基準で、移行後に差分ゼロを確認済みです。
 
 ## 開発ツールのインストール
 

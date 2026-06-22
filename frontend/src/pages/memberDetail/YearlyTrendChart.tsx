@@ -9,6 +9,8 @@ import {
   YAxis,
 } from "recharts";
 import type { YearlyStatistics } from "../../gql/graphql";
+import { useIsNarrow } from "../../lib/useIsNarrow";
+import { narrowXAxisProps } from "../../components/chartAxis";
 
 export interface YearlyTrendChartProps {
   /** Per-year statistics for the member, oldest-to-newest is not assumed. */
@@ -31,6 +33,7 @@ const SERIES: ReadonlyArray<{ key: keyof YearlyStatistics; name: string; color: 
 // sorted ascending by year so the X axis reads left-to-right chronologically
 // regardless of the order the API returns rows in.
 export function YearlyTrendChart({ yearlyStats, height = 320 }: YearlyTrendChartProps) {
+  const isNarrow = useIsNarrow();
   if (yearlyStats.length === 0) {
     return <p>年別の活動データはありません。</p>;
   }
@@ -41,7 +44,7 @@ export function YearlyTrendChart({ yearlyStats, height = 320 }: YearlyTrendChart
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+        <XAxis dataKey="year" tick={{ fontSize: 12 }} {...(isNarrow ? narrowXAxisProps : {})} />
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip />
         <Legend />

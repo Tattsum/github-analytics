@@ -22,7 +22,7 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  # Web server: builds the SPA + Go server (Dockerfile) and serves both at :8080.
+  # Web server: builds the SPA + Go server (Dockerfile) and serves both at :8090.
   # It runs migrations on startup and reads the latest snapshot written by the
   # batch CLI (`-mode batch`).
   app:
@@ -31,11 +31,11 @@ services:
       dockerfile: Dockerfile
     container_name: github-analytics-app
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8090}:8090"
     environment:
       # Inside the compose network postgres is reachable by service name.
       DATABASE_URL: ${DATABASE_URL:-postgres://github_analytics:github_analytics@postgres:5432/github_analytics?sslmode=disable}
-      PORT: "8080"
+      PORT: "8090"
       # Set ENV=development to expose the GraphQL playground at /playground.
       ENV: ${ENV:-production}
     depends_on:

@@ -79,7 +79,7 @@ const MemberDetailQuery = graphql(`
   }
 `);
 
-const sectionStyle: React.CSSProperties = { marginTop: "2rem" };
+const sectionStyle = { marginTop: "2rem" } as const;
 
 // MemberDetail is the read-only per-member dashboard at /members/:login.
 export function MemberDetail() {
@@ -107,25 +107,25 @@ export function MemberDetail() {
   return (
     <section>
       <h1>
-        {member.name} <span style={{ color: "#6b7280", fontWeight: 400 }}>@{member.login}</span>
+        {member.name} <span css={{ color: "#6b7280", fontWeight: 400 }}>@{member.login}</span>
       </h1>
 
-      <section style={sectionStyle}>
+      <section css={sectionStyle}>
         <h2>累計</h2>
         <MemberTotals stats={member} />
       </section>
 
-      <section style={sectionStyle}>
+      <section css={sectionStyle}>
         <h2>活動推移（期間指定）</h2>
         <TrendSection dailyStats={member.dailyStats} emptyMessage="対象期間の活動データはありません。" />
       </section>
 
-      <section style={sectionStyle}>
+      <section css={sectionStyle}>
         <h2>年別推移</h2>
         <YearlyTrendChart yearlyStats={member.yearlyStats} />
       </section>
 
-      <section style={sectionStyle}>
+      <section css={sectionStyle}>
         <h2>主なリポジトリ</h2>
         <RepositoryActivityList
           repositories={member.topRepositories}
@@ -133,7 +133,7 @@ export function MemberDetail() {
         />
       </section>
 
-      <section style={sectionStyle}>
+      <section css={sectionStyle}>
         <h2>長期間関与リポジトリ</h2>
         <RepositoryActivityList
           repositories={member.longTermRepositories}
@@ -142,7 +142,7 @@ export function MemberDetail() {
         />
       </section>
 
-      <section style={sectionStyle}>
+      <section css={sectionStyle}>
         <h2>役割の変化</h2>
         <RoleTransition points={member.roleTransition} />
       </section>

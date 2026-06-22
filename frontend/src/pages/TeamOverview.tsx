@@ -68,11 +68,11 @@ export function TeamOverview() {
   const error = summaryResult.error ?? membersResult.error ?? dailyResult.error;
 
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+    <section css={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
       <h1>チーム概要</h1>
 
       {fetching && <p>読み込み中…</p>}
-      {error && <p style={{ color: "#b91c1c" }}>概要を読み込めませんでした: {error.message}</p>}
+      {error && <p css={{ color: "#b91c1c" }}>概要を読み込めませんでした: {error.message}</p>}
 
       {summaryResult.data && <SummaryCards summary={summaryResult.data.teamSummary} />}
 

@@ -6,4 +6,10 @@ dist/*
 !dist/.gitkeep
 *.local
 
+# Playwright: commit the screenshot baselines under tests, ignore run output.
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
+
 # graphql-codegen generated output is committed so types exist without codegen

@@ -12,12 +12,12 @@ export interface MetricPickerProps<T> {
 // repository list and the in-repo contributor ranking.
 export function MetricPicker<T>({ label, options, value, onChange }: MetricPickerProps<T>) {
   return (
-    <label style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-      <span style={{ fontSize: "0.875rem", color: "#374151" }}>{label}</span>
+    <label css={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+      <span css={{ fontSize: "0.875rem", color: "#374151" }}>{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{
+        css={{
           padding: "0.375rem 0.5rem",
           borderRadius: "0.375rem",
           border: "1px solid #d1d5db",

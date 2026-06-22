@@ -46,7 +46,7 @@ export function MemberTotals({ stats }: MemberTotalsProps) {
 
   return (
     <dl
-      style={{
+      css={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
         gap: "0.75rem",
@@ -55,8 +55,8 @@ export function MemberTotals({ stats }: MemberTotalsProps) {
     >
       {metrics.map((m) => (
         <div key={m.label}>
-          <dt style={{ fontSize: 12, color: "#6b7280" }}>{m.label}</dt>
-          <dd style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
+          <dt css={{ fontSize: 12, color: "#6b7280" }}>{m.label}</dt>
+          <dd css={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
             {m.ratio ? m.value.toFixed(2) : m.year ? String(m.value) : m.value.toLocaleString()}
           </dd>
         </div>

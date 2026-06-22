@@ -9,9 +9,12 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "codegen": "graphql-codegen --config codegen.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
     "@graphql-typed-document-node/core": "^3.2.0",
     "graphql": "^16.9.0",
     "react": "^18.3.1",
@@ -23,6 +26,7 @@
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/client-preset": "^4.5.0",
+    "@playwright/test": "^1.61.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

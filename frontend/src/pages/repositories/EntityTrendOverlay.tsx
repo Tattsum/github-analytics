@@ -92,7 +92,7 @@ export function EntityTrendOverlay({ entities, entityLabel, emptyMessage }: Enti
   const hiddenCount = effectiveKeys.length - plottedKeys.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+    <div css={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       <MetricPicker
         label="指標"
         options={trendMetrics}
@@ -107,20 +107,20 @@ export function EntityTrendOverlay({ entities, entityLabel, emptyMessage }: Enti
         max={seriesBounds?.max}
       />
 
-      <fieldset style={{ border: "1px solid #e5e7eb", borderRadius: "0.5rem", padding: "0.75rem", margin: 0 }}>
-        <legend style={{ fontSize: "0.875rem", color: "#374151", padding: "0 0.5rem" }}>
+      <fieldset css={{ border: "1px solid #e5e7eb", borderRadius: "0.5rem", padding: "0.75rem", margin: 0 }}>
+        <legend css={{ fontSize: "0.875rem", color: "#374151", padding: "0 0.5rem" }}>
           比較する{entityLabel}（最大 {MAX_SERIES} 件まで表示）
         </legend>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem 1.25rem", maxHeight: "10rem", overflowY: "auto" }}>
+        <div css={{ display: "flex", flexWrap: "wrap", gap: "0.5rem 1.25rem", maxHeight: "10rem", overflowY: "auto" }}>
           {entities.map((e) => (
-            <label key={e.key} style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.85rem" }}>
+            <label key={e.key} css={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.85rem" }}>
               <input type="checkbox" checked={selectedSet.has(e.key)} onChange={() => toggleEntity(e.key)} />
               {e.key}
             </label>
           ))}
         </div>
         {hiddenCount > 0 && (
-          <p style={{ fontSize: "0.8rem", color: "#b45309", margin: "0.5rem 0 0" }}>
+          <p css={{ fontSize: "0.8rem", color: "#b45309", margin: "0.5rem 0 0" }}>
             選択 {effectiveKeys.length} 件のうち上位 {MAX_SERIES} 件のみ表示しています（残り {hiddenCount} 件は非表示）。
           </p>
         )}

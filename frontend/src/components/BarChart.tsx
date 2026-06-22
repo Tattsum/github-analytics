@@ -7,6 +7,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useIsNarrow } from "../lib/useIsNarrow";
+import { narrowXAxisProps } from "./chartAxis";
 
 export interface BarChartSeries<T> {
   /** dataKey on each datum to plot as a bar. */
@@ -31,11 +33,12 @@ const DEFAULT_COLOR = "#2563eb";
 // series instead of repeating axis/container/tooltip boilerplate. Phase 1 pages
 // (rankings, comparisons, repository metrics) render bars through this.
 export function BarChart<T>({ data, categoryKey, series, height = 320 }: BarChartProps<T>) {
+  const isNarrow = useIsNarrow();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RechartsBarChart data={data as T[]}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey={categoryKey} tick={{ fontSize: 12 }} />
+        <XAxis dataKey={categoryKey} tick={{ fontSize: 12 }} {...(isNarrow ? narrowXAxisProps : {})} />
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip />
         {series.map((s) => (

@@ -47,12 +47,12 @@ export function RankingTable<T>({ items, metric, columns, direction = "desc" }: 
   }
 
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+    <table css={{ width: "100%", minWidth: 640, borderCollapse: "collapse" }}>
       <thead>
         <tr>
-          <th style={headStyle(true)}>#</th>
+          <th css={headStyle(true)}>#</th>
           {columns.map((c) => (
-            <th key={c.key} style={headStyle(c.numeric)}>
+            <th key={c.key} css={headStyle(c.numeric)}>
               {c.header}
             </th>
           ))}
@@ -61,9 +61,9 @@ export function RankingTable<T>({ items, metric, columns, direction = "desc" }: 
       <tbody>
         {ranked.map(({ item, rank: position }, index) => (
           <tr key={index}>
-            <td style={cellStyle(true)}>{position}</td>
+            <td css={cellStyle(true)}>{position}</td>
             {columns.map((c) => (
-              <td key={c.key} style={cellStyle(c.numeric)}>
+              <td key={c.key} css={cellStyle(c.numeric)}>
                 {c.render(item)}
               </td>
             ))}

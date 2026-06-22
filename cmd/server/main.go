@@ -7,7 +7,7 @@
 //
 // Optional environment:
 //
-//	PORT          HTTP listen port (default 8080).
+//	PORT          HTTP listen port (default 8090).
 //	ENV           When "development"/"dev", the GraphQL playground is mounted at
 //	              GET /playground. It is omitted in production.
 package main
@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	defaultPort        = "8080"
+	defaultPort        = "8090"
 	migrateTimeout     = 30 * time.Second
 	readHeaderTimeout  = 10 * time.Second
 	shutdownTimeout    = 10 * time.Second
